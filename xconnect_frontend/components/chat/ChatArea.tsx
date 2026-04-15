@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useSocket } from "@/hooks/useSocket";
 import { useChatStore } from "@/store/chat.store";
 import { useAuthStore } from "@/store/auth.store";
+import { useWebRTC } from "@/hooks/useWebRTC";
 import { Phone, Video, MoreVertical, PlusCircle, Smile, Send } from "lucide-react";
 import { Message } from "@/types";
 import ShareModal from "./ShareModal";
@@ -12,6 +13,7 @@ export default function ChatArea() {
   const { activeRoomId, messagesByRoom, addMessage } = useChatStore();
   const { user } = useAuthStore();
   const { socket } = useSocket();
+  const { initiateCall } = useWebRTC();
   const [inputText, setInputText] = useState("");
   const [shareMsg, setShareMsg] = useState<any>(null);
   
@@ -123,10 +125,14 @@ export default function ChatArea() {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button className="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 transition-opacity text-slate-600 dark:text-slate-400">
+          <button 
+             onClick={() => initiateCall("fake-remote-id", "Elena Vance", true)}
+             className="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 transition-opacity text-slate-600 dark:text-slate-400">
             <Video className="w-5 h-5 fill-current" />
           </button>
-          <button className="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 transition-opacity text-slate-600 dark:text-slate-400">
+          <button 
+             onClick={() => initiateCall("fake-remote-id", "Elena Vance", false)}
+             className="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 transition-opacity text-slate-600 dark:text-slate-400">
             <Phone className="w-5 h-5 fill-current" />
           </button>
           <button className="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 transition-opacity text-slate-600 dark:text-slate-400">
