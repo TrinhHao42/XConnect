@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { Phone, Video, MoreVertical, PlusCircle, Smile, Send } from "lucide-react";
 import { Message } from "@/types";
 import ShareModal from "./ShareModal";
+import DOMPurify from "isomorphic-dompurify";
 
 export default function ChatArea() {
   const { activeRoomId, messagesByRoom, addMessage } = useChatStore();
@@ -160,7 +161,7 @@ export default function ChatArea() {
                     ? "bg-gradient-to-br from-primary to-primary-container text-white rounded-xl rounded-br-sm shadow-md shadow-primary/10" 
                     : "bg-surface-container-highest text-on-surface rounded-xl rounded-bl-sm"
                 }`}>
-                  {msg.content}
+                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.content) }} className="break-words" />
                   <button 
                      onClick={() => setShareMsg(msg)}
                      className={`absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-primary ${isMine ? "-left-10" : "-right-10"}`}

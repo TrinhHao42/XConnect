@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getSocket } from '../libs/socket';
 import { useAuthStore } from '../store/auth.store';
 import { useChatStore } from '../store/chat.store';
+import { toast } from "sonner";
 
 export const useSocket = () => {
   const { isAuthenticated } = useAuthStore();
   const socket = getSocket();
-  const socketConnected = useRef(false);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     // Only connect if user is authenticated
@@ -17,7 +18,8 @@ export const useSocket = () => {
 
       socket.on("connect", () => {
         console.log("Socket connected:", socket.id);
-        socketConnected.current = true;
+        setIsConnected(true);
+        toast.success("Connected to chat server", { id: "socket-conn" });
         
         // Smarter Reconnect Resiliency: Rejoin active rooms silently
         const { activeRoomId } = useChatStore.getState();
@@ -26,10 +28,15 @@ export const useSocket = () => {
         }
       });
 
-      socket.on("disconnect", () => {
-        console.warn("Socket disconnected.");
-        socketConnected.current = false;
-        // The Toast/UI offline indicator gets triggered here in a real scenario
+      socket.on("disconnect", (reason) => {
+        console.warn("Socket disconnected:", reason);
+        setIsConnected(false);
+        toast.error(`Disconnected: ${reason}`, { id: "socket-conn" });
+      });
+
+      socket.on("connect_error", (error) => {
+        console.error("Socket connection error:", error);
+        toast.error("Connection error, retrying...", { id: "socket-conn" });
       });
 
       // Dedup insertion logic bound to socket listening
