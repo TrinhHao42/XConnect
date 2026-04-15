@@ -1,5 +1,6 @@
 import Sidebar from "@/components/chat/Sidebar";
 import ConversationList from "@/components/chat/ConversationList";
+import GlobalCallManager from "@/components/call/GlobalCallManager";
 import { ReactNode } from "react";
 
 export default function ChatLayout({ children }: { children: ReactNode }) {
@@ -10,6 +11,7 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
         <ConversationList />
         {children}
       </main>
+      <GlobalCallManager />
     </div>
   );
 }
