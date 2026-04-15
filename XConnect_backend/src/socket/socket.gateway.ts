@@ -11,6 +11,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ChatService } from '../chat/chat.service';
 
 @WebSocketGateway({
   cors: {
@@ -24,7 +25,10 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private logger: Logger = new Logger('SocketGateway');
 
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly chatService: ChatService
+  ) {}
 
   afterInit(server: Server) {
     this.logger.log('Socket initialized');
@@ -61,7 +65,34 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   @SubscribeMessage('pingServer')
   handlePing(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
     this.logger.log(`Ping received from ${client.id}: ${JSON.stringify(data)}`);
-    // Example: send back to client
     client.emit('pongClient', { message: 'Hello from server!', originalId: client.id });
+  }
+
+  // --- THÊM CHATS ---
+  @SubscribeMessage('joinRoom')
+  handleJoinRoom(@ConnectedSocket() client: Socket, @MessageBody() data: { conversationId: string }) {
+    if (data.conversationId) {
+      client.join(data.conversationId);
+      this.logger.log(`Client ${client.id} joined room ${data.conversationId}`);
+    }
+  }
+
+  @SubscribeMessage('sendMessage')
+  async handleSendMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: { conversationId: string, content: string }) {
+    try {
+      const user = client.data.user;
+      if (!user) throw new Error('Not authenticated');
+
+      const { conversationId, content } = payload;
+      
+      // Lưu vào Database
+      const message = await this.chatService.saveMessage(conversationId, user.sub, content);
+
+      // Gửi Message đó tới tất cả các user trong room này
+      this.server.to(conversationId).emit('newMessage', message);
+    } catch (e) {
+      this.logger.error(`Error sending message: ${e.message}`);
+      client.emit('error', { message: 'Cannot send message' });
+    }
   }
 }

@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { SocketModule } from './socket/socket.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { SocketModule } from './socket/socket.module';
     PrismaModule,
     RedisModule,
     SocketModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],
