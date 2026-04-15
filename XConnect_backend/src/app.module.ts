@@ -4,7 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
-import { AuthModule } from './auth/auth.module';
+import { CallModule } from './call/call.module';
 
 @Module({
   imports: [
@@ -14,7 +14,7 @@ import { AuthModule } from './auth/auth.module';
     }),
     PrismaModule,
     RedisModule,
-    AuthModule,
+    CallModule,
   ],
   controllers: [AppController],
   providers: [AppService],
