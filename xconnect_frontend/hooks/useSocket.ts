@@ -67,5 +67,5 @@ export const useSocket = () => {
     };
   }, [isAuthenticated, socket]);
 
-  return { socket, connected: socketConnected.current };
+  return { socket, connected: isConnected };
 };

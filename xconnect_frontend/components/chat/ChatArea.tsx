@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useSocket } from "@/hooks/useSocket";
 import { useChatStore } from "@/store/chat.store";
 import { useAuthStore } from "@/store/auth.store";
-import { Phone, Video, MoreVertical, PlusCircle, Smile, Send } from "lucide-react";
+import { Phone, Video, MoreVertical, PlusCircle, Smile, Send, MessageSquare } from "lucide-react";
 import { Message } from "@/types";
 import ShareModal from "./ShareModal";
 import DOMPurify from "isomorphic-dompurify";
@@ -15,7 +15,7 @@ export default function ChatArea() {
   const { socket } = useSocket();
   const [inputText, setInputText] = useState("");
   const [shareMsg, setShareMsg] = useState<any>(null);
-  
+
   // UX Features
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -33,10 +33,10 @@ export default function ChatArea() {
   const handleScroll = () => {
     if (!scrollContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-    
+
     // If not near bottom, we consider user is reading history
     const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-    
+
     if (isNearBottom && showScrollBadge) {
       setShowScrollBadge(false);
     }
@@ -57,7 +57,7 @@ export default function ChatArea() {
 
   const handleSend = () => {
     if (!inputText.trim() || !activeRoomId || !user) return;
-    
+
     const tempId = "temp-" + Date.now();
     const mockMessage: Message = {
       id: tempId,
@@ -71,7 +71,7 @@ export default function ChatArea() {
 
     // Optimistic Update
     addMessage(mockMessage);
-    
+
     // Emit through socket
     if (socket) {
       socket.emit("sendMessage", {
@@ -137,7 +137,7 @@ export default function ChatArea() {
       </header>
 
       {/* Message History */}
-      <div 
+      <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth"
@@ -156,18 +156,17 @@ export default function ChatArea() {
                 {isMine ? "U" : "E"}
               </div>
               <div className={`space-y-1 items-end flex flex-col ${!isMine && "items-start"}`}>
-                <div className={`p-4 text-sm leading-relaxed relative group ${
-                  isMine 
-                    ? "bg-gradient-to-br from-primary to-primary-container text-white rounded-xl rounded-br-sm shadow-md shadow-primary/10" 
+                <div className={`p-4 text-sm leading-relaxed relative group ${isMine
+                    ? "bg-gradient-to-br from-primary to-primary-container text-white rounded-xl rounded-br-sm shadow-md shadow-primary/10"
                     : "bg-surface-container-highest text-on-surface rounded-xl rounded-bl-sm"
-                }`}>
+                  }`}>
                   <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.content) }} className="break-words" />
-                  <button 
-                     onClick={() => setShareMsg(msg)}
-                     className={`absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-primary ${isMine ? "-left-10" : "-right-10"}`}
-                     title="Share Message"
+                  <button
+                    onClick={() => setShareMsg(msg)}
+                    className={`absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-primary ${isMine ? "-left-10" : "-right-10"}`}
+                    title="Share Message"
                   >
-                     <MoreVertical className="w-4 h-4" />
+                    <MoreVertical className="w-4 h-4" />
                   </button>
                 </div>
                 <div className="flex items-center gap-1">
@@ -189,7 +188,7 @@ export default function ChatArea() {
 
       {showScrollBadge && (
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20">
-          <button 
+          <button
             onClick={() => scrollToBottom("smooth")}
             className="flex items-center gap-2 bg-primary text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all"
           >
@@ -209,15 +208,15 @@ export default function ChatArea() {
               <Smile className="w-5 h-5" />
             </button>
           </div>
-          <textarea 
+          <textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2.5 px-1 resize-none max-h-32 placeholder:text-outline/60 outline-none text-foreground" 
-            placeholder="Type a message..." 
+            className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2.5 px-1 resize-none max-h-32 placeholder:text-outline/60 outline-none text-foreground"
+            placeholder="Type a message..."
             rows={1}
           />
-          <button 
+          <button
             onClick={handleSend}
             disabled={!inputText.trim()}
             className="p-3 bg-primary text-white rounded-xl hover:scale-105 active:scale-95 transition-transform flex items-center justify-center shadow-lg shadow-primary/20 disabled:opacity-50 disabled:hover:scale-100"
