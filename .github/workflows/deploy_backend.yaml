@@ -149,8 +149,8 @@ jobs:
 
             cd /home/${{ secrets.EC2_USERNAME }}/XConnect_backend
 
-            pnpm install --prod --frozen-lockfile
+            pnpm install --frozen-lockfile
 
-            pm2 reload xconnect-backend || pm2 start dist/main.js --name xconnect-backend
+            pm2 reload xconnect-backend || pm2 start dist/src/main.js --name xconnect-backend
 
             pm2 save
