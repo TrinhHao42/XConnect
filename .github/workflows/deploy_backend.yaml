@@ -116,17 +116,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Debug files
+        run: |
+          find . -maxdepth 3
+
       - name: Copy files to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: |
-            dist
-            XConnect_backend/prisma
-            package.json
-            pnpm-lock.yaml
+          source: "XConnect_backend/dist,XConnect_backend/prisma,XConnect_backend/package.json,XConnect_backend/pnpm-lock.yaml"
           target: "/home/${{ secrets.EC2_USERNAME }}/XConnect_backend"
 
       - name: Execute deployment commands on EC2
