@@ -161,7 +161,7 @@ jobs:
             find . -maxdepth 5
 
             echo "=== INSTALL PRODUCTION DEPS ==="
-            pnpm install --prod --frozen-lockfile
+            pnpm install --frozen-lockfile
 
             echo "=== GENERATE PRISMA CLIENT ==="
             pnpm prisma generate
