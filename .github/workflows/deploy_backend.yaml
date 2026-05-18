@@ -122,6 +122,10 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            # Load NVM to make node, npm, pnpm, and pm2 available in non-interactive SSH
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            
             cd /home/${{ secrets.EC2_USERNAME }}/XConnect_backend
             
             # Install pnpm on the server if not already installed
