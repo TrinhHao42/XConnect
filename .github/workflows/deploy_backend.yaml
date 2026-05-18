@@ -184,5 +184,3 @@ jobs:
 
             echo "=== HEALTH CHECK ==="
             sleep 5
-
-            pm2 logs xconnect-backend --lines 30
