@@ -1,4 +1,14 @@
-import { Controller, Post, Get, Patch, Delete, Body, Param, Headers, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Headers,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { JwtService } from '@nestjs/jwt';
 
@@ -6,7 +16,7 @@ import { JwtService } from '@nestjs/jwt';
 export class ChatController {
   constructor(
     private readonly chatService: ChatService,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
   ) {}
 
   private async getUserIdFromAuth(authHeader: string): Promise<string> {
@@ -14,7 +24,7 @@ export class ChatController {
       const token = authHeader?.split(' ')[1];
       if (!token) throw new Error('No token');
       const payload = await this.jwtService.verifyAsync(token, {
-         secret: process.env.JWT_SECRET || 'your-secret-key'
+        secret: process.env.JWT_SECRET || 'your-secret-key',
       });
       return payload.sub || payload.userId || String(payload.id);
     } catch {
@@ -28,7 +38,10 @@ export class ChatController {
     @Body('targetUserId') targetUserId: string,
   ) {
     const currentUserId = await this.getUserIdFromAuth(authHeader);
-    return this.chatService.createOrGetConversation(currentUserId, targetUserId);
+    return this.chatService.createOrGetConversation(
+      currentUserId,
+      targetUserId,
+    );
   }
 
   @Post('groups')
@@ -38,7 +51,11 @@ export class ChatController {
     @Body('memberIds') memberIds: string[],
   ) {
     const currentUserId = await this.getUserIdFromAuth(authHeader);
-    return this.chatService.createGroupConversation(currentUserId, name, memberIds || []);
+    return this.chatService.createGroupConversation(
+      currentUserId,
+      name,
+      memberIds || [],
+    );
   }
 
   @Get('conversations')
@@ -62,7 +79,10 @@ export class ChatController {
     @Param('id') conversationId: string,
   ) {
     const currentUserId = await this.getUserIdFromAuth(authHeader);
-    return this.chatService.getConversationDetails(conversationId, currentUserId);
+    return this.chatService.getConversationDetails(
+      conversationId,
+      currentUserId,
+    );
   }
 
   @Post('groups/:id/members')
@@ -72,7 +92,11 @@ export class ChatController {
     @Body('memberIds') memberIds: string[],
   ) {
     const currentUserId = await this.getUserIdFromAuth(authHeader);
-    return this.chatService.addGroupMembers(conversationId, currentUserId, memberIds || []);
+    return this.chatService.addGroupMembers(
+      conversationId,
+      currentUserId,
+      memberIds || [],
+    );
   }
 
   @Post('groups/:id/leader')
@@ -82,7 +106,11 @@ export class ChatController {
     @Body('newLeaderId') newLeaderId: string,
   ) {
     const currentUserId = await this.getUserIdFromAuth(authHeader);
-    return this.chatService.setGroupLeader(conversationId, currentUserId, newLeaderId);
+    return this.chatService.setGroupLeader(
+      conversationId,
+      currentUserId,
+      newLeaderId,
+    );
   }
 
   @Post('groups/:id/leader-and-leave')
@@ -92,7 +120,11 @@ export class ChatController {
     @Body('newLeaderId') newLeaderId: string,
   ) {
     const currentUserId = await this.getUserIdFromAuth(authHeader);
-    return this.chatService.transferLeadershipAndLeave(conversationId, currentUserId, newLeaderId);
+    return this.chatService.transferLeadershipAndLeave(
+      conversationId,
+      currentUserId,
+      newLeaderId,
+    );
   }
 
   @Post('groups/:id/kick/:memberId')
@@ -102,17 +134,30 @@ export class ChatController {
     @Param('memberId') memberId: string,
   ) {
     const currentUserId = await this.getUserIdFromAuth(authHeader);
-    return this.chatService.kickGroupMember(conversationId, currentUserId, memberId);
+    return this.chatService.kickGroupMember(
+      conversationId,
+      currentUserId,
+      memberId,
+    );
   }
 
   @Patch('groups/:id/permissions')
   async updateGroupPermissions(
     @Headers('authorization') authHeader: string,
     @Param('id') conversationId: string,
-    @Body() body: { memberAddMode?: string; messageSendMode?: string; allowedSenderIds?: string[] },
+    @Body()
+    body: {
+      memberAddMode?: string;
+      messageSendMode?: string;
+      allowedSenderIds?: string[];
+    },
   ) {
     const currentUserId = await this.getUserIdFromAuth(authHeader);
-    return this.chatService.updateGroupPermissions(conversationId, currentUserId, body || {});
+    return this.chatService.updateGroupPermissions(
+      conversationId,
+      currentUserId,
+      body || {},
+    );
   }
 
   @Delete('groups/:id')

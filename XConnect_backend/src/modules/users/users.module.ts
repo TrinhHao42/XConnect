@@ -6,7 +6,10 @@ import { JwtModule } from '@nestjs/jwt';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const publicKey = fs.readFileSync(path.join(process.cwd(), 'keys', 'public_key.pem'), 'utf8');
+const publicKey = fs.readFileSync(
+  path.join(process.cwd(), 'keys', 'public_key.pem'),
+  'utf8',
+);
 
 @Module({
   imports: [
@@ -20,4 +23,4 @@ const publicKey = fs.readFileSync(path.join(process.cwd(), 'keys', 'public_key.p
   providers: [UsersService],
   exports: [UsersService],
 })
-export class UsersModule { }
+export class UsersModule {}

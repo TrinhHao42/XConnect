@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SocketGateway } from '../../socket/socket.gateway';
 
@@ -6,20 +10,24 @@ import { SocketGateway } from '../../socket/socket.gateway';
 export class FriendService {
   constructor(
     private prisma: PrismaService,
-    private socketGateway: SocketGateway
+    private socketGateway: SocketGateway,
   ) {}
 
   async sendRequest(senderId: string, receiverId: string) {
     if (senderId === receiverId) {
-      throw new BadRequestException('You cannot send a friend request to yourself');
+      throw new BadRequestException(
+        'You cannot send a friend request to yourself',
+      );
     }
 
     // Check if already friends
-    const sender = await this.prisma.user.findUnique({ where: { id: senderId } });
+    const sender = await this.prisma.user.findUnique({
+      where: { id: senderId },
+    });
     if (!sender) {
       throw new NotFoundException('Sender not found');
     }
-    
+
     if (sender.friendIds && sender.friendIds.includes(receiverId)) {
       throw new BadRequestException('You are already friends');
     }
@@ -76,7 +84,11 @@ export class FriendService {
       where: { id: requestId },
     });
 
-    if (!request || request.receiverId !== userId || request.status !== 'pending') {
+    if (
+      !request ||
+      request.receiverId !== userId ||
+      request.status !== 'pending'
+    ) {
       throw new BadRequestException('Invalid or expired friend request');
     }
 
@@ -107,7 +119,11 @@ export class FriendService {
     });
 
     // Notify sender
-    this.socketGateway.notifyUser(request.senderId, 'friendRequestAccepted', updatedRequest);
+    this.socketGateway.notifyUser(
+      request.senderId,
+      'friendRequestAccepted',
+      updatedRequest,
+    );
 
     return { message: 'Friend request accepted' };
   }
@@ -117,7 +133,11 @@ export class FriendService {
       where: { id: requestId },
     });
 
-    if (!request || request.receiverId !== userId || request.status !== 'pending') {
+    if (
+      !request ||
+      request.receiverId !== userId ||
+      request.status !== 'pending'
+    ) {
       throw new BadRequestException('Invalid or expired friend request');
     }
 
@@ -132,7 +152,11 @@ export class FriendService {
     });
 
     // Notify sender
-    this.socketGateway.notifyUser(request.senderId, 'friendRequestRejected', updatedRequest);
+    this.socketGateway.notifyUser(
+      request.senderId,
+      'friendRequestRejected',
+      updatedRequest,
+    );
 
     return updatedRequest;
   }

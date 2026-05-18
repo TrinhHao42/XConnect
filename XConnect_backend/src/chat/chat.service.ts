@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -8,7 +12,9 @@ export class ChatService {
   // Create or get 1v1 conversation
   async createOrGetConversation(user1Id: string, user2Id: string) {
     if (user1Id === user2Id) {
-      throw new BadRequestException('Cannot create a conversation with yourself');
+      throw new BadRequestException(
+        'Cannot create a conversation with yourself',
+      );
     }
 
     // Find a 1v1 conversation matching exactly these two users
