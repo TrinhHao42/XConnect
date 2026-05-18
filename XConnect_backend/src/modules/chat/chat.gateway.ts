@@ -19,7 +19,9 @@ import { ChatService } from './chat.service';
     credentials: true,
   },
 })
-export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -27,7 +29,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   constructor(
     private readonly jwtService: JwtService,
-    private readonly chatService: ChatService
+    private readonly chatService: ChatService,
   ) {}
 
   afterInit(server: Server) {
@@ -36,14 +38,13 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   async handleConnection(client: Socket, ...args: any[]) {
     try {
-      const token = 
-        client.handshake.auth?.token || 
+      const token =
+        client.handshake.auth?.token ||
         client.handshake.headers.authorization?.split(' ')[1];
 
       if (!token) return; // Silent return, let CallGateway handle the main rejection if needed
       const payload = await this.jwtService.verifyAsync(token);
       client.data.user = payload;
-      
     } catch (error) {
       // we might not disconnect here, because CallGateway could also connect, but we better be safe
       client.disconnect();
@@ -54,7 +55,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   // --- THÊM CHATS ---
   @SubscribeMessage('joinRoom')
-  handleJoinRoom(@ConnectedSocket() client: Socket, @MessageBody() data: { conversationId: string }) {
+  handleJoinRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: string },
+  ) {
     if (data.conversationId) {
       client.join(data.conversationId);
       this.logger.log(`Client ${client.id} joined room ${data.conversationId}`);
@@ -62,16 +66,29 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('sendMessage')
-  async handleSendMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: { conversationId: string; content: string; tempId?: string; type?: string }) {
+  async handleSendMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    payload: {
+      conversationId: string;
+      content: string;
+      tempId?: string;
+      type?: string;
+    },
+  ) {
     try {
       const user = client.data.user;
       if (!user) throw new Error('Not authenticated');
 
       const { conversationId, content, tempId } = payload;
       const userId = user.sub || user.userId || String(user.id);
-      
+
       // Lưu vào Database
-      const message = await this.chatService.saveMessage(conversationId, userId, content);
+      const message = await this.chatService.saveMessage(
+        conversationId,
+        userId,
+        content,
+      );
 
       if (tempId) {
         client.emit('messageStatusUpdate', {
@@ -82,7 +99,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         });
       }
 
-      client.to(conversationId).emit('newMessage', tempId ? { ...message, tempId } : message);
+      client
+        .to(conversationId)
+        .emit('newMessage', tempId ? { ...message, tempId } : message);
     } catch (e) {
       this.logger.error(`Error sending message: ${e.message}`);
       client.emit('error', { message: 'Cannot send message' });

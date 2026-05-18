@@ -1,4 +1,10 @@
-import { Controller, Get, Query, Req, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Req,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { RtcRole, RtcTokenBuilder } from 'agora-access-token';
 
@@ -34,14 +40,16 @@ export class AgoraController {
     @Query('uid') uidQuery?: string,
     @Query('expiry') expirySec?: string,
   ) {
-    const authToken = req.headers?.authorization?.split(' ')[1] || req.query?.token;
+    const authToken =
+      req.headers?.authorization?.split(' ')[1] || req.query?.token;
     if (!authToken) throw new UnauthorizedException('Missing auth token');
 
     const payload = await this.jwtService.verifyAsync(authToken).catch(() => {
       throw new UnauthorizedException('Invalid token');
     });
 
-    const userId = payload?.sub || payload?.userId || String(payload?.id || '0');
+    const userId =
+      payload?.sub || payload?.userId || String(payload?.id || '0');
     const uid = toAgoraUid(uidQuery ?? userId);
 
     const appId = process.env.AGORA_APP_ID;

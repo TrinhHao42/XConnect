@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, BadRequestException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  Inject,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { Redis } from 'ioredis';
@@ -11,7 +16,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     @Inject('REDIS_CLIENT') private redis: Redis,
-  ) { }
+  ) {}
 
   async register(body: any) {
     if (!body) {
@@ -20,7 +25,9 @@ export class AuthService {
     const { username, name, email, password, repassword } = body;
 
     if (!email || !password) {
-      throw new BadRequestException('Vui lòng cung cấp đầy đủ email và mật khẩu');
+      throw new BadRequestException(
+        'Vui lòng cung cấp đầy đủ email và mật khẩu',
+      );
     }
 
     if (repassword !== undefined && password !== repassword) {
@@ -56,7 +63,9 @@ export class AuthService {
 
   async login(body: any) {
     if (!body || !body.email || !body.password) {
-      throw new BadRequestException('Vui lòng cung cấp đầy đủ email và mật khẩu');
+      throw new BadRequestException(
+        'Vui lòng cung cấp đầy đủ email và mật khẩu',
+      );
     }
     const { email, password } = body;
     const user = await this.prisma.user.findUnique({ where: { email } });
@@ -75,7 +84,9 @@ export class AuthService {
   }
 
   async oauthLogin(profile: any, provider: string) {
-    let user = await this.prisma.user.findUnique({ where: { email: profile.email } });
+    let user = await this.prisma.user.findUnique({
+      where: { email: profile.email },
+    });
     if (!user) {
       user = await this.prisma.user.create({
         data: {
@@ -96,7 +107,9 @@ export class AuthService {
 
     const userId = await this.redis.get(`refresh_token:${oldRefreshToken}`);
     if (!userId) {
-      throw new UnauthorizedException('Refresh Token không hợp lệ hoặc đã hết hạn');
+      throw new UnauthorizedException(
+        'Refresh Token không hợp lệ hoặc đã hết hạn',
+      );
     }
 
     // Xoá token cũ để tránh bị reuse (xoay vòng token)
@@ -114,11 +127,15 @@ export class AuthService {
     // Đưa Access Token vào Blacklist (TTL 15 phút = 900 giây)
     if (accessToken) {
       // Decode để lấy chính xác thời gian còn lại, hoặc set dư một chút
-      const decoded = this.jwtService.decode(accessToken) as any;
+      const decoded = this.jwtService.decode(accessToken);
       if (decoded && decoded.exp) {
         const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
         if (expiresIn > 0) {
-          await this.redis.setex(`blacklist:${accessToken}`, expiresIn, 'revoked');
+          await this.redis.setex(
+            `blacklist:${accessToken}`,
+            expiresIn,
+            'revoked',
+          );
         }
       } else {
         await this.redis.setex(`blacklist:${accessToken}`, 900, 'revoked');
@@ -183,7 +200,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await this.prisma.user.update({
       where: { email },
-      data: { password: hashedPassword }
+      data: { password: hashedPassword },
     });
 
     // Clear reset token
@@ -203,7 +220,10 @@ export class AuthService {
     try {
       await this.redis.setex(`refresh_token:${refreshToken}`, 604800, userId);
     } catch (error) {
-      console.warn('[Auth] Failed to persist refresh token in Redis:', error.message);
+      console.warn(
+        '[Auth] Failed to persist refresh token in Redis:',
+        error.message,
+      );
     }
 
     return { accessToken, refreshToken };

@@ -29,4 +29,4 @@ import { FriendModule } from './modules/friend/friend.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
