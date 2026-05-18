@@ -13,6 +13,7 @@ import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway({
+  namespace: 'call',
   cors: {
     origin: true,
     credentials: true,

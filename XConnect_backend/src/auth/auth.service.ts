@@ -17,13 +17,21 @@ export class AuthService {
     if (!body) {
       throw new BadRequestException('Dữ liệu đăng ký không hợp lệ');
     }
-    const { username, email, password, repassword } = body;
-    if (password !== repassword) {
+    const { username, name, email, password, repassword } = body;
+
+    if (!email || !password) {
+      throw new BadRequestException('Vui lòng cung cấp đầy đủ email và mật khẩu');
+    }
+
+    if (repassword !== undefined && password !== repassword) {
       throw new BadRequestException('Mật khẩu nhập lại không khớp');
     }
 
+    const normalizedUsername = (username || name || email.split('@')[0]).trim();
+    const normalizedName = (name || username || normalizedUsername).trim();
+
     const existingUser = await this.prisma.user.findFirst({
-      where: { OR: [{ email }, { username }] },
+      where: { OR: [{ email }, { username: normalizedUsername }] },
     });
 
     if (existingUser) {
@@ -33,14 +41,17 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await this.prisma.user.create({
       data: {
-        username,
+        username: normalizedUsername,
+        name: normalizedName,
         email,
         password: hashedPassword,
         provider: 'local',
       },
     });
 
-    return this.generateTokens(user.id);
+    const { password: _, ...safeUser } = user;
+    const tokens = await this.generateTokens(user.id);
+    return { ...tokens, user: safeUser };
   }
 
   async login(body: any) {
@@ -58,7 +69,9 @@ export class AuthService {
       throw new UnauthorizedException('Thông tin đăng nhập không hợp lệ');
     }
 
-    return this.generateTokens(user.id);
+    const { password: _, ...safeUser } = user;
+    const tokens = await this.generateTokens(user.id);
+    return { ...tokens, user: safeUser };
   }
 
   async oauthLogin(profile: any, provider: string) {
@@ -186,7 +199,12 @@ export class AuthService {
     const refreshToken = crypto.randomBytes(40).toString('hex');
 
     // Lưu refresh token vào Redis với chu kỳ sống 7 ngày (604800 giây)
-    await this.redis.setex(`refresh_token:${refreshToken}`, 604800, userId);
+    // Nếu Redis chưa sẵn sàng, vẫn trả token để đăng ký/đăng nhập không bị treo.
+    try {
+      await this.redis.setex(`refresh_token:${refreshToken}`, 604800, userId);
+    } catch (error) {
+      console.warn('[Auth] Failed to persist refresh token in Redis:', error.message);
+    }
 
     return { accessToken, refreshToken };
   }

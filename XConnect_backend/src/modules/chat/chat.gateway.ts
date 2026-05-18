@@ -62,19 +62,27 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('sendMessage')
-  async handleSendMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: { conversationId: string, content: string }) {
+  async handleSendMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: { conversationId: string; content: string; tempId?: string; type?: string }) {
     try {
       const user = client.data.user;
       if (!user) throw new Error('Not authenticated');
 
-      const { conversationId, content } = payload;
+      const { conversationId, content, tempId } = payload;
       const userId = user.sub || user.userId || String(user.id);
       
       // Lưu vào Database
       const message = await this.chatService.saveMessage(conversationId, userId, content);
 
-      // Gửi Message đó tới tất cả các user trong room này
-      this.server.to(conversationId).emit('newMessage', message);
+      if (tempId) {
+        client.emit('messageStatusUpdate', {
+          messageId: message.id,
+          tempId,
+          conversationId,
+          status: 'sent',
+        });
+      }
+
+      client.to(conversationId).emit('newMessage', tempId ? { ...message, tempId } : message);
     } catch (e) {
       this.logger.error(`Error sending message: ${e.message}`);
       client.emit('error', { message: 'Cannot send message' });

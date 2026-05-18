@@ -10,16 +10,16 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() body: any, @Res({ passthrough: true }) res: Response) {
-    const tokens = await this.authService.register(body);
-    this.setRefreshTokenCookie(res, tokens.refreshToken);
-    return { accessToken: tokens.accessToken };
+    const data = await this.authService.register(body);
+    this.setRefreshTokenCookie(res, data.refreshToken);
+    return { accessToken: data.accessToken, user: data.user };
   }
 
   @Post('login')
   async login(@Body() body: any, @Res({ passthrough: true }) res: Response) {
-    const tokens = await this.authService.login(body);
-    this.setRefreshTokenCookie(res, tokens.refreshToken);
-    return { accessToken: tokens.accessToken };
+    const data = await this.authService.login(body);
+    this.setRefreshTokenCookie(res, data.refreshToken);
+    return { accessToken: data.accessToken, user: data.user };
   }
 
   @Post('refresh')

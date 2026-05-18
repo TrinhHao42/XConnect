@@ -6,6 +6,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { SocketModule } from './socket/socket.module';
 import { ChatModule } from './chat/chat.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
+import { CallModule } from './modules/call/call.module';
+import { FriendModule } from './modules/friend/friend.module';
 
 @Module({
   imports: [
@@ -15,8 +19,12 @@ import { ChatModule } from './chat/chat.module';
     }),
     PrismaModule,
     RedisModule,
-    SocketModule,
+    AuthModule,
+    UsersModule,
     ChatModule,
+    SocketModule,
+    CallModule,
+    FriendModule,
   ],
   controllers: [AppController],
   providers: [AppService],

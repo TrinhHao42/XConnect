@@ -1,48 +1,33 @@
-import { Controller, Get, Put, Body, Param, Query, Headers, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Put, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { JwtService } from '@nestjs/jwt';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @Controller('users')
+@UseGuards(JwtAuthGuard)
 export class UsersController {
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly jwtService: JwtService
-  ) {}
-
-  private async getUserIdFromAuth(authHeader: string): Promise<string> {
-    try {
-      const token = authHeader?.split(' ')[1];
-      if (!token) throw new Error('No token');
-      const payload = await this.jwtService.verifyAsync(token, {
-         secret: process.env.JWT_SECRET || 'your-secret-key'
-      });
-      return payload.sub || payload.userId || String(payload.id);
-    } catch {
-      throw new UnauthorizedException('Token không hợp lệ hoặc không có');
-    }
-  }
+  constructor(private readonly usersService: UsersService) {}
 
   @Get('profile')
-  async getProfile(@Headers('authorization') authHeader: string) {
-    const userId = await this.getUserIdFromAuth(authHeader);
+  async getProfile(@Req() req: any) {
+    const userId = req.user.userId;
     return this.usersService.getProfile(userId);
   }
 
   @Put('profile')
   async updateProfile(
-    @Headers('authorization') authHeader: string,
+    @Req() req: any,
     @Body() updateData: { name?: string; avatar?: string; bio?: string }
   ) {
-    const userId = await this.getUserIdFromAuth(authHeader);
+    const userId = req.user.userId;
     return this.usersService.updateProfile(userId, updateData);
   }
 
   @Get('search')
   async searchUsers(
-    @Headers('authorization') authHeader: string,
+    @Req() req: any,
     @Query('q') query: string
   ) {
-    const userId = await this.getUserIdFromAuth(authHeader);
+    const userId = req.user.userId;
     return this.usersService.searchUsers(query, userId);
   }
 

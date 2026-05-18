@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { CallGateway } from './call.gateway';
+import { AgoraController } from './agora.controller';
 
 @Module({
   imports: [
@@ -9,5 +10,6 @@ import { CallGateway } from './call.gateway';
     }),
   ],
   providers: [CallGateway],
+  controllers: [AgoraController],
 })
 export class CallModule {}

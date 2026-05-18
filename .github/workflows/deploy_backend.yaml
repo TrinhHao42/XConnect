@@ -1,0 +1,136 @@
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'XConnect_backend/**'
+
+jobs:
+  test:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./XConnect_backend
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: './XConnect_backend/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Linter
+        run: pnpm run lint
+
+      - name: Run Tests
+        run: |
+          if pnpm run | grep -q 'test'; then
+            pnpm run test
+          else
+            echo "No test script found, skipping tests."
+          fi
+
+  build:
+    name: Build Backend
+    needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./XConnect_backend
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: './XConnect_backend/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build project
+        run: pnpm run build
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-dist
+          path: ./XConnect_backend/dist/
+          retention-days: 1
+
+      - name: Upload Package Files
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-package
+          path: |
+            ./XConnect_backend/package.json
+            ./XConnect_backend/pnpm-lock.yaml
+          retention-days: 1
+
+  deploy:
+    name: Push to EC2
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-dist
+          path: dist
+
+      - name: Download Package Files
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-package
+          path: .
+
+      - name: Copy files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "dist/*,package.json,pnpm-lock.yaml"
+          target: "/home/${{ secrets.EC2_USERNAME }}/XConnect_backend"
+
+      - name: Execute deployment commands on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/${{ secrets.EC2_USERNAME }}/XConnect_backend
+            
+            # Install pnpm on the server if not already installed
+            if ! command -v pnpm &> /dev/null; then
+              npm install -g pnpm
+            fi
+
+            # Install production dependencies only
+            pnpm install --prod --frozen-lockfile
+            
+            # Restart the application using PM2
+            pm2 reload xconnect-backend || pm2 start dist/main.js --name "xconnect-backend"
