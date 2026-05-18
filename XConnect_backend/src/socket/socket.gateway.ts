@@ -20,7 +20,9 @@ import { ChatService } from '../chat/chat.service';
     credentials: true,
   },
 })
-export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class SocketGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -29,7 +31,7 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   constructor(
     private readonly jwtService: JwtService,
-    private readonly chatService: ChatService
+    private readonly chatService: ChatService,
   ) {}
 
   afterInit(server: Server) {
@@ -44,8 +46,8 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   async handleConnection(client: Socket, ...args: any[]) {
     try {
       // FE có thể gửi token qua header (Bearer ...) hoặc gửi thẳng trong auth: { token: '...' }
-      const token = 
-        client.handshake.auth?.token || 
+      const token =
+        client.handshake.auth?.token ||
         client.handshake.headers.authorization?.split(' ')[1];
 
       if (!token) {
@@ -54,16 +56,20 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
       // Giải mã token, kiểm tra hợp lệ
       const payload = await this.jwtService.verifyAsync(token);
-      
+
       // Lưu thông tin user vào socket data để các event khác xài
       client.data.user = payload;
       this.userSockets.set(payload.sub, client.id);
-      
-      this.logger.log(`Client connected & authenticated: ${client.id} (User ID: ${payload.sub})`);
-      
+
+      this.logger.log(
+        `Client connected & authenticated: ${client.id} (User ID: ${payload.sub})`,
+      );
+
       this.broadcastOnlineUsers();
     } catch (error) {
-      this.logger.warn(`Client connection rejected: ${client.id} - Reason: ${error.message}`);
+      this.logger.warn(
+        `Client connection rejected: ${client.id} - Reason: ${error.message}`,
+      );
       client.disconnect(); // Đóng kết nối nếu token sai / không có
     }
   }
@@ -79,12 +85,18 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   @SubscribeMessage('pingServer')
   handlePing(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
     this.logger.log(`Ping received from ${client.id}: ${JSON.stringify(data)}`);
-    client.emit('pongClient', { message: 'Hello from server!', originalId: client.id });
+    client.emit('pongClient', {
+      message: 'Hello from server!',
+      originalId: client.id,
+    });
   }
 
   // --- THÊM CHATS ---
   @SubscribeMessage('joinRoom')
-  handleJoinRoom(@ConnectedSocket() client: Socket, @MessageBody() data: { conversationId: string }) {
+  handleJoinRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: string },
+  ) {
     if (data.conversationId) {
       client.join(data.conversationId);
       this.logger.log(`Client ${client.id} joined room ${data.conversationId}`);
@@ -92,15 +104,28 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   @SubscribeMessage('sendMessage')
-  async handleSendMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: { conversationId: string; content: string; tempId?: string; type?: string }) {
+  async handleSendMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    payload: {
+      conversationId: string;
+      content: string;
+      tempId?: string;
+      type?: string;
+    },
+  ) {
     try {
       const user = client.data.user;
       if (!user) throw new Error('Not authenticated');
 
       const { conversationId, content, tempId } = payload;
-      
+
       // Lưu vào Database
-      const message = await this.chatService.saveMessage(conversationId, user.sub, content);
+      const message = await this.chatService.saveMessage(
+        conversationId,
+        user.sub,
+        content,
+      );
 
       // Báo lại cho người gửi để thay thế optimistic message
       if (tempId) {
@@ -113,7 +138,9 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       }
 
       // Gửi message thật cho những người còn lại trong room
-      client.to(conversationId).emit('newMessage', tempId ? { ...message, tempId } : message);
+      client
+        .to(conversationId)
+        .emit('newMessage', tempId ? { ...message, tempId } : message);
     } catch (e) {
       this.logger.error(`Error sending message: ${e.message}`);
       client.emit('error', { message: 'Cannot send message' });
@@ -121,10 +148,13 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   @SubscribeMessage('typing')
-  handleTyping(@ConnectedSocket() client: Socket, @MessageBody() data: { conversationId: string }) {
+  handleTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: string },
+  ) {
     const user = client.data.user;
     if (!user || !data.conversationId) return;
-    
+
     this.logger.log(`User ${user.sub} typing in room ${data.conversationId}`);
 
     client.to(data.conversationId).emit('userTyping', {
@@ -134,11 +164,16 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   @SubscribeMessage('stopTyping')
-  handleStopTyping(@ConnectedSocket() client: Socket, @MessageBody() data: { conversationId: string }) {
+  handleStopTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: string },
+  ) {
     const user = client.data.user;
     if (!user || !data.conversationId) return;
 
-    this.logger.log(`User ${user.sub} stopped typing in room ${data.conversationId}`);
+    this.logger.log(
+      `User ${user.sub} stopped typing in room ${data.conversationId}`,
+    );
 
     client.to(data.conversationId).emit('userStoppedTyping', {
       conversationId: data.conversationId,

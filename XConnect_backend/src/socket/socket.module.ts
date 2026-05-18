@@ -6,7 +6,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // Load public key để verify RS256 token (chỉ cần public key, không cần private key)
-const publicKey = fs.readFileSync(path.join(process.cwd(), 'keys', 'public_key.pem'), 'utf8');
+const publicKey = fs.readFileSync(
+  path.join(process.cwd(), 'keys', 'public_key.pem'),
+  'utf8',
+);
 
 @Module({
   imports: [
@@ -21,4 +24,4 @@ const publicKey = fs.readFileSync(path.join(process.cwd(), 'keys', 'public_key.p
   providers: [SocketGateway],
   exports: [SocketGateway],
 })
-export class SocketModule { }
+export class SocketModule {}

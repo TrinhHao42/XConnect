@@ -5,7 +5,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { AuthService } from '../auth.service';
 
-const publicKey = fs.readFileSync(path.join(process.cwd(), 'keys', 'public_key.pem'), 'utf8');
+const publicKey = fs.readFileSync(
+  path.join(process.cwd(), 'keys', 'public_key.pem'),
+  'utf8',
+);
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -22,12 +25,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(req: any, payload: any) {
     const accessToken = req.headers['authorization']?.split(' ')[1];
     if (accessToken) {
-      const isBlacklisted = await this.authService.isTokenBlacklisted(accessToken);
+      const isBlacklisted =
+        await this.authService.isTokenBlacklisted(accessToken);
       if (isBlacklisted) {
         throw new UnauthorizedException('Token đã bị thu hồi');
       }
     }
-    
+
     return { userId: payload.sub };
   }
 }

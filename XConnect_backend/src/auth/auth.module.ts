@@ -10,8 +10,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // Load keys
-const privateKey = fs.readFileSync(path.join(process.cwd(), 'keys', 'private_key.pem'), 'utf8');
-const publicKey = fs.readFileSync(path.join(process.cwd(), 'keys', 'public_key.pem'), 'utf8');
+const privateKey = fs.readFileSync(
+  path.join(process.cwd(), 'keys', 'private_key.pem'),
+  'utf8',
+);
+const publicKey = fs.readFileSync(
+  path.join(process.cwd(), 'keys', 'public_key.pem'),
+  'utf8',
+);
 
 @Module({
   imports: [
@@ -19,22 +25,17 @@ const publicKey = fs.readFileSync(path.join(process.cwd(), 'keys', 'public_key.p
     JwtModule.register({
       privateKey: privateKey,
       publicKey: publicKey,
-      signOptions: { 
-        algorithm: 'RS256', 
-        expiresIn: '15m' 
+      signOptions: {
+        algorithm: 'RS256',
+        expiresIn: '15m',
       },
       verifyOptions: {
         algorithms: ['RS256'],
-      }
+      },
     }),
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService, 
-    JwtStrategy, 
-    GoogleStrategy, 
-    GithubStrategy
-  ],
+  providers: [AuthService, JwtStrategy, GoogleStrategy, GithubStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

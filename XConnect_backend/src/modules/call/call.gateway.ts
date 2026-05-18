@@ -19,7 +19,9 @@ import { JwtService } from '@nestjs/jwt';
     credentials: true,
   },
 })
-export class CallGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class CallGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -33,23 +35,27 @@ export class CallGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   async handleConnection(client: Socket, ...args: any[]) {
     try {
-      const token = 
-        client.handshake.auth?.token || 
+      const token =
+        client.handshake.auth?.token ||
         client.handshake.headers.authorization?.split(' ')[1];
 
       if (!token) throw new Error('Missing token');
 
       const payload = await this.jwtService.verifyAsync(token);
       client.data.user = payload;
-      
+
       const userId = payload.sub || payload.userId || String(payload.id);
-      
+
       // Global room for the user to be callable from anywhere
       client.join(userId);
 
-      this.logger.log(`Client online for Calls: ${client.id} (User ID: ${userId})`);
+      this.logger.log(
+        `Client online for Calls: ${client.id} (User ID: ${userId})`,
+      );
     } catch (error) {
-      this.logger.warn(`Call connection rejected: ${client.id} - ${error.message}`);
+      this.logger.warn(
+        `Call connection rejected: ${client.id} - ${error.message}`,
+      );
       client.disconnect();
     }
   }
@@ -63,56 +69,87 @@ export class CallGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   // ==========================================
 
   @SubscribeMessage('callUser')
-  handleCallUser(@ConnectedSocket() client: Socket, @MessageBody() payload: { userToCallId: string, signalData: any, isVideo: boolean, fromName?: string }) {
+  handleCallUser(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    payload: {
+      userToCallId: string;
+      signalData: any;
+      isVideo: boolean;
+      fromName?: string;
+    },
+  ) {
     const user = client.data.user;
     if (!user) return;
-    
+
     const userId = user.sub || user.userId || String(user.id);
-    this.server.to(payload.userToCallId).emit('incomingCall', { 
-      signal: payload.signalData, 
-      from: userId, 
-      callerName: payload.fromName || 'Someone', 
-      isVideo: payload.isVideo 
+    this.server.to(payload.userToCallId).emit('incomingCall', {
+      signal: payload.signalData,
+      from: userId,
+      callerName: payload.fromName || 'Someone',
+      isVideo: payload.isVideo,
     });
-    this.logger.log(`[Call] initiated from ${userId} to ${payload.userToCallId}`);
+    this.logger.log(
+      `[Call] initiated from ${userId} to ${payload.userToCallId}`,
+    );
   }
 
   @SubscribeMessage('answerCall')
-  handleAnswerCall(@ConnectedSocket() client: Socket, @MessageBody() payload: { toUserId: string, signalData: any }) {
+  handleAnswerCall(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { toUserId: string; signalData: any },
+  ) {
     const user = client.data.user;
     if (!user) return;
-    
+
     const userId = user.sub || user.userId || String(user.id);
-    this.server.to(payload.toUserId).emit('callAccepted', { signal: payload.signalData, from: userId });
-    this.logger.log(`[Call] accepted by ${userId} for caller ${payload.toUserId}`);
+    this.server
+      .to(payload.toUserId)
+      .emit('callAccepted', { signal: payload.signalData, from: userId });
+    this.logger.log(
+      `[Call] accepted by ${userId} for caller ${payload.toUserId}`,
+    );
   }
 
   @SubscribeMessage('rejectCall')
-  handleRejectCall(@ConnectedSocket() client: Socket, @MessageBody() payload: { toUserId: string }) {
-     const user = client.data.user;
-     if (!user) return;
+  handleRejectCall(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { toUserId: string },
+  ) {
+    const user = client.data.user;
+    if (!user) return;
 
-     const userId = user.sub || user.userId || String(user.id);
-     this.server.to(payload.toUserId).emit('callRejected', { from: userId });
-     this.logger.log(`[Call] rejected by ${userId} for caller ${payload.toUserId}`);
+    const userId = user.sub || user.userId || String(user.id);
+    this.server.to(payload.toUserId).emit('callRejected', { from: userId });
+    this.logger.log(
+      `[Call] rejected by ${userId} for caller ${payload.toUserId}`,
+    );
   }
 
   @SubscribeMessage('endCall')
-  handleEndCall(@ConnectedSocket() client: Socket, @MessageBody() payload: { toUserId: string }) {
-     const user = client.data.user;
-     if (!user) return;
+  handleEndCall(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { toUserId: string },
+  ) {
+    const user = client.data.user;
+    if (!user) return;
 
-     const userId = user.sub || user.userId || String(user.id);
-     this.server.to(payload.toUserId).emit('callEnded', { from: userId });
-     this.logger.log(`[Call] ended by ${userId}`);
+    const userId = user.sub || user.userId || String(user.id);
+    this.server.to(payload.toUserId).emit('callEnded', { from: userId });
+    this.logger.log(`[Call] ended by ${userId}`);
   }
 
   @SubscribeMessage('iceCandidate')
-  handleIceCandidate(@ConnectedSocket() client: Socket, @MessageBody() payload: { toUserId: string, candidate: any }) {
-     const user = client.data.user;
-     if (!user) return;
+  handleIceCandidate(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { toUserId: string; candidate: any },
+  ) {
+    const user = client.data.user;
+    if (!user) return;
 
-     const userId = user.sub || user.userId || String(user.id);
-     this.server.to(payload.toUserId).emit('iceCandidate', { candidate: payload.candidate, from: userId });
+    const userId = user.sub || user.userId || String(user.id);
+    this.server
+      .to(payload.toUserId)
+      .emit('iceCandidate', { candidate: payload.candidate, from: userId });
   }
 }
