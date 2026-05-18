@@ -1,156 +1,76 @@
-name: Deploy Backend to EC2
+deploy:
+  name: Push to EC2
+  needs: build
+  runs-on: ubuntu-latest
 
-on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'XConnect_backend/**'
-      - '.github/workflows/deploy_backend.yaml'
+  steps:
+    - name: Download Build Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: backend-dist
+        path: dist
 
-jobs:
-  test:
-    name: Test Backend
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./XConnect_backend
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+    - name: Download Package Files
+      uses: actions/download-artifact@v4
+      with:
+        name: backend-package
+        path: .
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
+    - name: Checkout repository for prisma folder
+      uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          cache-dependency-path: './XConnect_backend/pnpm-lock.yaml'
+    - name: Copy files to EC2
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        source: "dist,prisma,package.json,pnpm-lock.yaml"
+        target: "/home/${{ secrets.EC2_USERNAME }}/XConnect_backend"
 
-      - name: Run Linter
-        run: pnpm run lint
+    - name: Execute deployment commands on EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Run Tests
-        run: |
-          if pnpm run | grep -q 'test'; then
-            pnpm run test
-          else
-            echo "No test script found, skipping tests."
+        script: |
+          export NVM_DIR="/home/${{ secrets.EC2_USERNAME }}/.nvm"
+
+          if [ -s "$NVM_DIR/nvm.sh" ]; then
+            . "$NVM_DIR/nvm.sh"
           fi
 
-  build:
-    name: Build Backend
-    needs: test
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./XConnect_backend
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+          export PATH="$PATH:/home/${{ secrets.EC2_USERNAME }}/.nvm/versions/node/v24.15.0/bin"
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
+          echo "===== NODE ====="
+          which node
+          node -v
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          cache-dependency-path: './XConnect_backend/pnpm-lock.yaml'
+          echo "===== NPM ====="
+          which npm
+          npm -v
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          echo "===== PNPM ====="
+          which pnpm
+          pnpm -v
 
-      - name: Build project
-        run: pnpm run build
+          echo "===== PM2 ====="
+          if ! command -v pm2 &> /dev/null; then
+            npm install -g pm2
+          fi
 
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-dist
-          path: ./XConnect_backend/dist/
-          retention-days: 1
+          cd /home/${{ secrets.EC2_USERNAME }}/XConnect_backend
 
-      - name: Upload Package Files
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-package
-          path: |
-            ./XConnect_backend/package.json
-            ./XConnect_backend/pnpm-lock.yaml
-          retention-days: 1
+          echo "===== INSTALL DEPENDENCIES ====="
+          pnpm install --frozen-lockfile
 
-  deploy:
-    name: Push to EC2
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-dist
-          path: dist
+          echo "===== GENERATE PRISMA ====="
+          npx prisma generate
 
-      - name: Download Package Files
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-package
-          path: .
+          echo "===== PM2 RESTART ====="
+          pm2 reload xconnect-backend || pm2 start dist/src/main.js --name xconnect-backend
 
-      - name: Copy files to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "dist/*,package.json,pnpm-lock.yaml"
-          target: "/home/${{ secrets.EC2_USERNAME }}/XConnect_backend"
-
-      - name: Execute deployment commands on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-
-          script: |
-            export NVM_DIR="/home/${{ secrets.EC2_USERNAME }}/.nvm"
-
-            if [ -s "$NVM_DIR/nvm.sh" ]; then
-              . "$NVM_DIR/nvm.sh"
-            fi
-
-            export PATH="$PATH:/home/${{ secrets.EC2_USERNAME }}/.nvm/versions/node/v24.15.0/bin"
-
-            echo "NODE:"
-            which node
-            node -v
-
-            echo "NPM:"
-            which npm
-            npm -v
-
-            echo "PNPM:"
-            which pnpm
-            pnpm -v
-
-            echo "PM2:"
-            which pm2 || npm install -g pm2
-
-            cd /home/${{ secrets.EC2_USERNAME }}/XConnect_backend
-
-            pnpm install --frozen-lockfile
-
-            pm2 reload xconnect-backend || pm2 start dist/src/main.js --name xconnect-backend
-
-            pm2 save
+          pm2 save
