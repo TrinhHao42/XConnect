@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'XConnect_backend/**'
+      - '.github/workflows/deploy_backend.yaml'
 
 jobs:
   test:
@@ -122,7 +123,10 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Load NVM to make node, npm, pnpm, and pm2 available in non-interactive SSH
+            # Load environment profiles to expose Node/npm paths
+            source ~/.profile || true
+            source ~/.bashrc || true
+            source ~/.bash_profile || true
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             
