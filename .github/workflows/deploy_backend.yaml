@@ -175,7 +175,7 @@ jobs:
 
             pm2 delete xconnect-backend || true
 
-            pm2 start dist/main.js --name xconnect-backend
+            pm2 start dist/src/main.js --name xconnect-backend
 
             pm2 save
 
