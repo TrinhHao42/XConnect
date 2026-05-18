@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'pnpm'
           cache-dependency-path: './XConnect_backend/pnpm-lock.yaml'
 
@@ -69,7 +69,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'pnpm'
           cache-dependency-path: './XConnect_backend/pnpm-lock.yaml'
 
@@ -83,7 +83,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: backend-dist
-          path: ./XConnect_backend/dist/
+          path: ./XConnect_backend/dist
           retention-days: 1
 
       - name: Upload Package Files
@@ -96,29 +96,30 @@ jobs:
           retention-days: 1
 
   deploy:
-    name: Push to EC2
+    name: Deploy to EC2
     needs: build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-dist
-          path: .
-
-      - name: Download Package Files
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-package
-          path: .
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-dist
+          path: XConnect_backend
+
+      - name: Download package files
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-package
+          path: XConnect_backend
+
       - name: Debug files
         run: |
-          find . -maxdepth 3
+          echo "=== FILE STRUCTURE ==="
+          find XConnect_backend -maxdepth 3
 
       - name: Copy files to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -127,7 +128,7 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "XConnect_backend/dist,XConnect_backend/prisma,XConnect_backend/package.json,XConnect_backend/pnpm-lock.yaml"
-          target: "/home/${{ secrets.EC2_USERNAME }}/XConnect_backend"
+          target: "/home/${{ secrets.EC2_USERNAME }}/"
 
       - name: Execute deployment commands on EC2
         uses: appleboy/ssh-action@v1.0.3
@@ -139,9 +140,12 @@ jobs:
           script: |
             export NVM_DIR="/home/${{ secrets.EC2_USERNAME }}/.nvm"
 
-            if [ -s "$NVM_DIR/nvm.sh" ]; then
-              . "$NVM_DIR/nvm.sh"
-            fi
+            export PATH="$NVM_DIR/versions/node/v24.15.0/bin:$PATH"
+
+            echo "=== NODE VERSION ==="
+            node -v
+            npm -v
+            pnpm -v
 
             cd /home/${{ secrets.EC2_USERNAME }}/XConnect_backend
 
@@ -156,3 +160,6 @@ jobs:
             pm2 reload xconnect-backend || pm2 start dist/src/main.js --name xconnect-backend
 
             pm2 save
+
+            echo "=== PM2 STATUS ==="
+            pm2 status
