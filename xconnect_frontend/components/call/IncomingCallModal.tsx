@@ -2,7 +2,7 @@
 
 import { useCallStore } from "@/store/call.store";
 import { useWebRTC } from "@/hooks/useWebRTC";
-import { PhoneInput, PhoneOff, Video } from "lucide-react";
+import { Phone, PhoneOff, Video } from "lucide-react";
 
 export default function IncomingCallModal() {
   const { status, remoteUser, callType } = useCallStore();
@@ -37,7 +37,7 @@ export default function IncomingCallModal() {
             className="flex flex-col items-center gap-2 focus:outline-none group"
           >
             <div className="w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-transform shadow-lg shadow-emerald-500/30">
-              {callType === "video" ? <Video className="w-6 h-6" /> : <PhoneInput className="w-6 h-6" />}
+              {callType === "video" ? <Video className="w-6 h-6" /> : <Phone className="w-6 h-6" />}
             </div>
             <span className="text-xs font-semibold text-on-surface-variant group-hover:text-emerald-500 transition-colors">Answer</span>
           </button>

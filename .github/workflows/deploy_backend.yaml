@@ -105,7 +105,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: backend-dist
-          path: dist
+          path: .
 
       - name: Download Package Files
         uses: actions/download-artifact@v4
@@ -113,7 +113,7 @@ jobs:
           name: backend-package
           path: .
 
-      - name: Checkout repository for prisma folder
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Copy files to EC2
@@ -122,7 +122,11 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "dist,prisma,package.json,pnpm-lock.yaml"
+          source: |
+            dist
+            XConnect_backend/prisma
+            package.json
+            pnpm-lock.yaml
           target: "/home/${{ secrets.EC2_USERNAME }}/XConnect_backend"
 
       - name: Execute deployment commands on EC2
@@ -139,11 +143,9 @@ jobs:
               . "$NVM_DIR/nvm.sh"
             fi
 
-            export PATH="$PATH:/home/${{ secrets.EC2_USERNAME }}/.nvm/versions/node/v24.15.0/bin"
-
             cd /home/${{ secrets.EC2_USERNAME }}/XConnect_backend
 
-            pnpm install --frozen-lockfile
+            pnpm install --prod --frozen-lockfile
 
             npx prisma generate
 
