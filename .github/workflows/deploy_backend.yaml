@@ -122,23 +122,35 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+
           script: |
-            # Load environment profiles to expose Node/npm paths
-            source ~/.profile || true
-            source ~/.bashrc || true
-            source ~/.bash_profile || true
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            
-            cd /home/${{ secrets.EC2_USERNAME }}/XConnect_backend
-            
-            # Install pnpm on the server if not already installed
-            if ! command -v pnpm &> /dev/null; then
-              npm install -g pnpm
+            export NVM_DIR="/home/${{ secrets.EC2_USERNAME }}/.nvm"
+
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              . "$NVM_DIR/nvm.sh"
             fi
 
-            # Install production dependencies only
+            export PATH="$PATH:/home/${{ secrets.EC2_USERNAME }}/.nvm/versions/node/v24.15.0/bin"
+
+            echo "NODE:"
+            which node
+            node -v
+
+            echo "NPM:"
+            which npm
+            npm -v
+
+            echo "PNPM:"
+            which pnpm
+            pnpm -v
+
+            echo "PM2:"
+            which pm2 || npm install -g pm2
+
+            cd /home/${{ secrets.EC2_USERNAME }}/XConnect_backend
+
             pnpm install --prod --frozen-lockfile
-            
-            # Restart the application using PM2
-            pm2 reload xconnect-backend || pm2 start dist/main.js --name "xconnect-backend"
+
+            pm2 reload xconnect-backend || pm2 start dist/main.js --name xconnect-backend
+
+            pm2 save
