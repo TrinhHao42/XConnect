@@ -8,6 +8,7 @@ export interface User {
   avatar?: string;
   bio?: string;
   isOnline?: boolean;
+  friendIds?: string[];
 }
 
 export type MessageType = "text" | "image" | "file";
@@ -28,6 +29,12 @@ export interface Conversation {
   participantIds: string[];
   participants?: User[];
   messages?: Message[];
+  kind?: "direct" | "group";
+  name?: string | null;
+  leaderId?: string | null;
+  memberAddMode?: "all" | "leader_only";
+  messageSendMode?: "all" | "restricted";
+  allowedSenderIds?: string[];
   updatedAt: string | number;
 }
 
@@ -52,9 +59,13 @@ export interface ClientToServerEvents {
 export interface ServerToClientEvents {
   // Chat Broadcasts
   newMessage: (message: Message & { tempId?: string }) => void; 
-  messageStatusUpdate: (payload: { messageId: string; tempId?: string; status: MessageStatus }) => void;
+  messageStatusUpdate: (payload: { messageId: string; tempId?: string; status: MessageStatus; conversationId?: string }) => void;
   userTyping: (payload: { userId: string; conversationId: string }) => void;
-  userStopTyping: (payload: { userId: string; conversationId: string }) => void;
+  userStoppedTyping: (payload: { userId: string; conversationId: string }) => void;
+  updateOnlineUsers: (users: string[]) => void;
+  friendRequestReceived: (data: any) => void;
+  friendRequestAccepted: (data: any) => void;
+  friendRequestRejected: (data: any) => void;
   
   // WebRTC Broadcasts
   incomingCall: (payload: { signal: any; from: string; callerName: string; isVideo: boolean }) => void;
