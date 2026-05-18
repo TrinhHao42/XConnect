@@ -79,21 +79,19 @@ jobs:
       - name: Build project
         run: pnpm run build
 
-      - name: Upload Build Artifacts
+      - name: Upload dist artifact
         uses: actions/upload-artifact@v4
         with:
           name: backend-dist
           path: ./XConnect_backend/dist
-          retention-days: 1
 
-      - name: Upload Package Files
+      - name: Upload package files
         uses: actions/upload-artifact@v4
         with:
           name: backend-package
           path: |
             ./XConnect_backend/package.json
             ./XConnect_backend/pnpm-lock.yaml
-          retention-days: 1
 
   deploy:
     name: Deploy to EC2
@@ -108,29 +106,41 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: backend-dist
-          path: XConnect_backend
+          path: .
 
       - name: Download package files
         uses: actions/download-artifact@v4
         with:
           name: backend-package
-          path: XConnect_backend
+          path: .
 
       - name: Debug files
         run: |
-          echo "=== FILE STRUCTURE ==="
-          find XConnect_backend -maxdepth 3
+          echo "=== ROOT ==="
+          ls -la
 
-      - name: Copy files to EC2
+          echo "=== DIST ==="
+          find dist -maxdepth 3
+
+      - name: Copy dist
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "XConnect_backend/dist,XConnect_backend/prisma,XConnect_backend/package.json,XConnect_backend/pnpm-lock.yaml"
-          target: "/home/${{ secrets.EC2_USERNAME }}/"
+          source: "dist"
+          target: "/home/${{ secrets.EC2_USERNAME }}/XConnect_backend"
 
-      - name: Execute deployment commands on EC2
+      - name: Copy prisma and package files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "XConnect_backend/prisma,package.json,pnpm-lock.yaml"
+          target: "/home/${{ secrets.EC2_USERNAME }}/XConnect_backend"
+
+      - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -138,18 +148,21 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
 
           script: |
-            export NVM_DIR="/home/${{ secrets.EC2_USERNAME }}/.nvm"
+            set -e
 
+            export NVM_DIR="/home/${{ secrets.EC2_USERNAME }}/.nvm"
             export PATH="$NVM_DIR/versions/node/v24.15.0/bin:$PATH"
 
-            echo "=== NODE VERSION ==="
             node -v
             npm -v
             pnpm -v
 
             cd /home/${{ secrets.EC2_USERNAME }}/XConnect_backend
 
-            pnpm install --frozen-lockfile
+            echo "=== PROJECT FILES ==="
+            find . -maxdepth 2
+
+            pnpm install --prod --frozen-lockfile --ignore-scripts=false
 
             pnpm prisma generate
 
@@ -157,9 +170,10 @@ jobs:
               npm install -g pm2
             fi
 
-            pm2 reload xconnect-backend || pm2 start dist/src/main.js --name xconnect-backend
+            pm2 delete xconnect-backend || true
+
+            pm2 start dist/main.js --name xconnect-backend
 
             pm2 save
 
-            echo "=== PM2 STATUS ==="
             pm2 status
