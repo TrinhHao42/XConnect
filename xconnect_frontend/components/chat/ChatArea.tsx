@@ -1139,8 +1139,8 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
                   className="flex-1 bg-transparent border-none focus:ring-0 text-base resize-none max-h-36 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none text-slate-900 dark:text-slate-100 py-2.5 scrollbar-thin"
                   placeholder={
                     language === "vi"
-                      ? `Nhập @, tin nhắn tới ${chatTitle.length > 15 ? chatTitle.substring(0, 15) + "..." : chatTitle}`
-                      : `Type @, message to ${chatTitle.length > 15 ? chatTitle.substring(0, 15) + "..." : chatTitle}`
+                      ? `Nhắn cho ${chatTitle.length > 8 ? chatTitle.substring(0, 8) + "..." : chatTitle}`
+                      : `Message ${chatTitle.length > 8 ? chatTitle.substring(0, 8) + "..." : chatTitle}`
                   }
                   rows={1}
                 />
