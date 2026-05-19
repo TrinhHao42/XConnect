@@ -1,16 +1,14 @@
-# syntax=docker/dockerfile:1.6
-
 FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
 RUN npm install
 
-# 👇 PHẢI COPY PRISMA TRƯỚC
+# COPY prisma TRƯỚC
 COPY prisma ./prisma
 COPY . .
 
-# 👇 generate ở builder (KHÔNG phải postinstall)
+# generate ở builder stage
 RUN npx prisma generate
 
 RUN npm run build
@@ -28,5 +26,4 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 8080
-
 CMD ["node", "dist/main.js"]
