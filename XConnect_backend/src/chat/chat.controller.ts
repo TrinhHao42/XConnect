@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AuthRequest } from '../common/types/auth-request.interface';
 
 @Controller('chat')
 @UseGuards(JwtAuthGuard)
@@ -17,10 +18,10 @@ export class ChatController {
 
   @Post('conversations')
   async createConversation(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Body('targetUserId') targetUserId: string,
   ) {
-    const currentUserId = req.user.userId;
+    const currentUserId = String(req.user.sub || req.user.userId);
     return this.chatService.createOrGetConversation(
       currentUserId,
       targetUserId,
@@ -28,14 +29,17 @@ export class ChatController {
   }
 
   @Get('conversations')
-  async getConversations(@Req() req: any) {
-    const currentUserId = req.user.userId;
+  async getConversations(@Req() req: AuthRequest) {
+    const currentUserId = String(req.user.sub || req.user.userId);
     return this.chatService.getUserConversations(currentUserId);
   }
 
   @Get('conversations/:id/messages')
-  async getMessages(@Req() req: any, @Param('id') conversationId: string) {
-    const currentUserId = req.user.userId;
+  async getMessages(
+    @Req() req: AuthRequest,
+    @Param('id') conversationId: string,
+  ) {
+    const currentUserId = String(req.user.sub || req.user.userId);
     return this.chatService.getMessages(conversationId, currentUserId);
   }
 }

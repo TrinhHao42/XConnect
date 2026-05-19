@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Redis } from 'ioredis';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
+import { createClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class AuthService {
@@ -115,7 +116,6 @@ export class AuthService {
   }
 
   async supabaseLogin(accessToken: string) {
-    const { createClient } = require('@supabase/supabase-js');
     const supabaseUrl = process.env.SUPABASE_URL || '';
     const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
     
