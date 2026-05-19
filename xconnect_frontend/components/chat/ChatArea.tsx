@@ -74,6 +74,14 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
   const [showScrollBadge, setShowScrollBadge] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [showRightSidebar, setShowRightSidebar] = useState(true);
+
+  // Set initial sidebar state on mount based on screen width
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setShowRightSidebar(window.innerWidth >= 768);
+    }
+  }, []);
+
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
   const [showPinsOverlay, setShowPinsOverlay] = useState(false);
@@ -85,6 +93,12 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
 
   useEffect(() => {
     if (!activeRoomId) return;
+
+    // Reset sidebar visibility based on screen size when switching rooms
+    if (typeof window !== "undefined") {
+      setShowRightSidebar(window.innerWidth >= 768);
+    }
+
     const stored = localStorage.getItem(`pinned_msgs_${activeRoomId}`);
     if (stored) {
       try {
@@ -140,8 +154,8 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
     }
     if (msg.content.startsWith("file:") || msg.content.startsWith("uploading-file:")) {
       const parts = msg.content.split("|");
-      const name = parts[0].startsWith("file:") 
-        ? parts[0].substring(5) 
+      const name = parts[0].startsWith("file:")
+        ? parts[0].substring(5)
         : parts[1];
       return `[${language === "vi" ? "Tài liệu" : "Document"}] ${name}`;
     }
@@ -211,13 +225,13 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
     }
   };
 
-  const isImageMessage = (msg: Message) => 
-    msg.type === "image" || 
-    msg.content.startsWith("data:image/") || 
+  const isImageMessage = (msg: Message) =>
+    msg.type === "image" ||
+    msg.content.startsWith("data:image/") ||
     msg.content.startsWith("uploading-image:");
 
-  const isFileMessage = (msg: Message) => 
-    msg.type === "file" || 
+  const isFileMessage = (msg: Message) =>
+    msg.type === "file" ||
     (typeof msg.content === "string" && (msg.content.startsWith("file:") || msg.content.startsWith("uploading-file:")));
 
   const parseFileMessage = (content: string) => {
@@ -264,10 +278,10 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
           addMessage({
             id: m.id,
             content,
-            type: typeof content === "string" && content.startsWith("data:image/") 
-              ? "image" 
-              : typeof content === "string" && content.startsWith("file:") 
-                ? "file" 
+            type: typeof content === "string" && content.startsWith("data:image/")
+              ? "image"
+              : typeof content === "string" && content.startsWith("file:")
+                ? "file"
                 : "text",
             senderId: m.senderId,
             roomId: activeRoomId,
@@ -367,7 +381,7 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
 
     const tempId = "temp-" + Date.now();
     const messageType = hasImage ? "image" : hasFile ? "file" : "text";
-    
+
     let content = "";
     let fileToUpload: File | null = null;
     let localPreviewUrl = "";
@@ -382,10 +396,10 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
     } else {
       let rawText = inputText.trim();
       if (replyingMessage) {
-        const senderName = replyingMessage.senderId === user.id 
+        const senderName = replyingMessage.senderId === user.id
           ? (language === "vi" ? "Bạn" : "You")
           : (activeConv?.participants?.find((p: any) => p.id === replyingMessage.senderId)?.name || "User");
-        
+
         const cleanReplyPreview = getCleanPreviewContent(replyingMessage);
         const quoteHtml = `<blockquote data-reply-id="${replyingMessage.id}"><strong>${senderName}:</strong> ${cleanReplyPreview}</blockquote>`;
         content = quoteHtml + rawText;
@@ -416,13 +430,13 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
       reader.onload = () => {
         const dataUrl = typeof reader.result === "string" ? reader.result : "";
         if (dataUrl && socket) {
-          const finalContent = isImg 
-            ? dataUrl 
+          const finalContent = isImg
+            ? dataUrl
             : `file:${targetFile.name}|${targetFile.size}|${dataUrl}`;
-          
+
           // Locally update message content to hide spinning indicator and render final file card
           useChatStore.getState().updateMessageContent(targetRoomId!, tempId, finalContent);
-          
+
           socket.emit("sendMessage", {
             conversationId: targetRoomId!,
             content: finalContent,
@@ -537,7 +551,7 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
             )}
           </div>
         </header>
-                     {/* Pinned Messages Bar */}
+        {/* Pinned Messages Bar */}
         {pinnedMessages.length > 0 && (
           <div className="relative border-b border-slate-200 dark:border-slate-800 bg-blue-50/40 dark:bg-slate-900/60 backdrop-blur-md px-5 py-2 flex items-center justify-between z-20 animate-in slide-in-from-top duration-200">
             <div className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" onClick={() => handleScrollToMessage(pinnedMessages[pinnedMessages.length - 1].id)}>
@@ -551,8 +565,8 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
                 <span className="font-bold text-slate-800 dark:text-slate-200 shrink-0">
                   {(() => {
                     const latestPin = pinnedMessages[pinnedMessages.length - 1];
-                    return latestPin.senderId === user?.id 
-                      ? (language === "vi" ? "Bạn" : "You") 
+                    return latestPin.senderId === user?.id
+                      ? (language === "vi" ? "Bạn" : "You")
                       : (activeConv?.participants?.find((p: any) => p.id === latestPin.senderId)?.name || "User");
                   })()}
                 </span>
@@ -565,7 +579,7 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
                 </span>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2 shrink-0 ml-4">
               {pinnedMessages.length > 1 && (
                 <button
@@ -576,7 +590,7 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
                   <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showPinsOverlay ? "rotate-180" : ""}`} />
                 </button>
               )}
-              
+
               <button
                 onClick={() => handleUnpinMessage(pinnedMessages[pinnedMessages.length - 1].id)}
                 className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
@@ -594,23 +608,23 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
                     <Pin className="w-3.5 h-3.5 text-blue-500 rotate-45" />
                     {language === "vi" ? `Danh sách ghim (${pinnedMessages.length})` : `Pinned List (${pinnedMessages.length})`}
                   </span>
-                  <button 
-                    onClick={() => setShowPinsOverlay(false)} 
+                  <button
+                    onClick={() => setShowPinsOverlay(false)}
                     className="text-[11px] font-bold text-slate-500 hover:text-blue-500 flex items-center gap-1 transition-colors"
                   >
                     {language === "vi" ? "Thu gọn" : "Collapse"}
                     <ChevronUp className="w-3 h-3" />
                   </button>
                 </div>
-                
+
                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
                   {[...pinnedMessages].reverse().map((pin) => {
-                    const senderName = pin.senderId === user?.id 
-                      ? (language === "vi" ? "Bạn" : "You") 
+                    const senderName = pin.senderId === user?.id
+                      ? (language === "vi" ? "Bạn" : "You")
                       : (activeConv?.participants?.find((p: any) => p.id === pin.senderId)?.name || "User");
                     return (
-                      <div 
-                        key={pin.id} 
+                      <div
+                        key={pin.id}
                         onClick={() => {
                           handleScrollToMessage(pin.id);
                           setShowPinsOverlay(false);
@@ -629,7 +643,7 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
                             {getCleanPreviewContent(pin)}
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center gap-2 shrink-0 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={(e) => { e.stopPropagation(); handleUnpinMessage(pin.id); }}
@@ -642,7 +656,7 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
                     );
                   })}
                 </div>
-                
+
                 <div className="px-5 py-2.5 bg-slate-50 dark:bg-slate-900/50 flex justify-center border-t border-slate-100 dark:border-slate-800">
                   <button
                     onClick={() => {
@@ -700,15 +714,14 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
                   </div>
                   <div className={`space-y-1 items-end flex flex-col ${!isMine && "items-start"}`}>
                     <div
-                      className={`relative group transition-all duration-500 ${
-                        highlightedMessageId === msg.id
+                      className={`relative group transition-all duration-500 ${highlightedMessageId === msg.id
                           ? "ring-4 ring-blue-500/60 dark:ring-blue-450/60 scale-[1.03] shadow-2xl z-10"
                           : ""
-                      } ${isImage || isFileMessage(msg)
-                        ? ""
-                        : isMine
-                          ? "p-4 text-sm leading-relaxed bg-linear-to-br from-blue-500 to-blue-600 text-white rounded-xl rounded-br-sm shadow-md shadow-blue-500/20"
-                          : "p-4 text-sm leading-relaxed bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl rounded-bl-sm"
+                        } ${isImage || isFileMessage(msg)
+                          ? ""
+                          : isMine
+                            ? "p-4 text-sm leading-relaxed bg-linear-to-br from-blue-500 to-blue-600 text-white rounded-xl rounded-br-sm shadow-md shadow-blue-500/20"
+                            : "p-4 text-sm leading-relaxed bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl rounded-bl-sm"
                         }`}
                     >
                       {isImage ? (
@@ -800,18 +813,16 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
                         <div
                           onClick={handleMessageBubbleClick}
                           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.content) }}
-                          className={`wrap-break-word text-inherit [&_blockquote]:border-l-3 [&_blockquote]:pl-3 [&_blockquote]:py-1.5 [&_blockquote]:pr-2 [&_blockquote]:rounded-r-lg [&_blockquote]:mb-2 [&_blockquote]:text-[11px] [&_blockquote]:block [&_blockquote]:select-none [&_blockquote]:cursor-pointer [&_blockquote]:transition-all [&_blockquote]:duration-200 ${
-                            isMine 
-                              ? "[&_blockquote]:border-white/60 [&_blockquote]:bg-white/15 [&_blockquote]:hover:bg-white/25 [&_blockquote]:text-blue-50/95 [&_blockquote_strong]:text-white [&_blockquote_strong]:font-semibold" 
+                          className={`wrap-break-word text-inherit [&_blockquote]:border-l-3 [&_blockquote]:pl-3 [&_blockquote]:py-1.5 [&_blockquote]:pr-2 [&_blockquote]:rounded-r-lg [&_blockquote]:mb-2 [&_blockquote]:text-[11px] [&_blockquote]:block [&_blockquote]:select-none [&_blockquote]:cursor-pointer [&_blockquote]:transition-all [&_blockquote]:duration-200 ${isMine
+                              ? "[&_blockquote]:border-white/60 [&_blockquote]:bg-white/15 [&_blockquote]:hover:bg-white/25 [&_blockquote]:text-blue-50/95 [&_blockquote_strong]:text-white [&_blockquote_strong]:font-semibold"
                               : "[&_blockquote]:border-blue-500 [&_blockquote]:bg-slate-50 [&_blockquote]:dark:bg-slate-900/50 [&_blockquote]:hover:bg-slate-100/80 [&_blockquote]:dark:hover:bg-slate-800/80 [&_blockquote]:text-slate-600 [&_blockquote]:dark:text-slate-400 [&_blockquote_strong]:text-blue-600 [&_blockquote_strong]:dark:text-blue-400 [&_blockquote_strong]:font-semibold"
-                          }`}
+                            }`}
                         />
                       )}
-                      <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 ${
-                        isMine 
-                          ? "left-0 -translate-x-[110%]" 
+                      <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 ${isMine
+                          ? "left-0 -translate-x-[110%]"
                           : "right-0 translate-x-[110%]"
-                      }`}>
+                        }`}>
                         {/* Reply / Quote Button */}
                         <button
                           onClick={() => handleReplyMessage(msg)}
@@ -1047,7 +1058,7 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
           >
             <X className="w-6 h-6" />
           </button>
-          
+
           <div className="relative max-w-[90vw] max-h-[85vh] overflow-hidden rounded-2xl shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <img
               src={previewImageUrl}
@@ -1073,11 +1084,11 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
         <>
           {/* Transparent click shield backdrop to dismiss */}
           <div className="fixed inset-0 z-40" onClick={() => { setActiveMenuMsg(null); setShowSubMenu(false); }} />
-          
-          <div 
-            style={{ 
-              top: Math.min(menuCoords.y, window.innerHeight - 380), 
-              left: Math.min(menuCoords.x, window.innerWidth - 240) 
+
+          <div
+            style={{
+              top: Math.min(menuCoords.y, window.innerHeight - 380),
+              left: Math.min(menuCoords.x, window.innerWidth - 240)
             }}
             className="fixed z-50 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 animate-in zoom-in-95 duration-100 flex flex-col font-sans"
           >
@@ -1145,7 +1156,7 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
             </button>
 
             {/* Submenu Item for Tuỳ chọn khác */}
-            <div 
+            <div
               className="relative"
               onMouseEnter={() => setShowSubMenu(true)}
               onMouseLeave={() => setShowSubMenu(false)}
@@ -1162,11 +1173,11 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
 
               {/* Submenu Popout (Figure 2 right side submenu) */}
               {showSubMenu && (
-                <div 
-                  style={{ 
-                    top: 0, 
-                    left: "100%", 
-                    marginLeft: "4px" 
+                <div
+                  style={{
+                    top: 0,
+                    left: "100%",
+                    marginLeft: "4px"
                   }}
                   className="absolute z-50 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-1 animate-in slide-in-from-left-2 duration-100 flex flex-col"
                 >
