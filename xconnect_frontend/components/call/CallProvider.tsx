@@ -455,9 +455,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
     void connectAgora();
 
     return () => {
-      cancelled = true;
-      if (currentClient) {
-        currentClient.removeAllListeners?.();
+      // Only cancel and remove listeners if the session has actually ended or switched to a different call.
+      // This prevents interrupting connection state updates as we transition from 'connecting' to 'active'.
+      const currentActiveSession = sessionRef.current;
+      if (!currentActiveSession || currentActiveSession.callId !== currentSession.callId) {
+        cancelled = true;
+        if (currentClient) {
+          currentClient.removeAllListeners?.();
+        }
       }
     };
   }, [clearAgoraArtifacts, resetSession, session, user?.id]);

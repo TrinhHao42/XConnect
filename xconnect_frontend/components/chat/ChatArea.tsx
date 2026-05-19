@@ -900,12 +900,12 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
         <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
           <div className="relative">
             {showEmojiPicker && (
-              <div className="absolute bottom-full left-0 mb-3 z-30 shadow-2xl rounded-2xl overflow-hidden border border-outline-variant/10">
+              <div className="absolute bottom-full left-0 mb-3 z-30 shadow-2xl rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800/80 w-full sm:w-[350px]">
                 <EmojiPicker
                   onEmojiClick={handleEmojiClick as any}
                   theme={(resolvedTheme === "dark" ? "dark" : "light") as any}
-                  width={360}
-                  height={420}
+                  width="100%"
+                  height={350}
                   searchDisabled={false}
                   lazyLoadEmojis
                 />
