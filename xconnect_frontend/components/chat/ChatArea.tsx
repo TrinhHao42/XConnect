@@ -5,7 +5,7 @@ import { useSocket } from "@/hooks/useSocket";
 import { useChatStore } from "@/store/chat.store";
 import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/libs/api";
-import { Phone, Video, MoreVertical, PlusCircle, Smile, Send, MessageSquare, Loader2, Forward, Users } from "lucide-react";
+import { Phone, Video, MoreVertical, PlusCircle, Smile, Send, MessageSquare, Loader2, Forward, Users, ArrowLeft } from "lucide-react";
 import { Message } from "@/types";
 import ShareModal from "./ShareModal";
 import DOMPurify from "isomorphic-dompurify";
@@ -15,13 +15,57 @@ import FriendRequestBanner from "./FriendRequestBanner";
 import { toast } from "sonner";
 import { useCall } from "@/components/call";
 import GroupManageModal from "./GroupManageModal";
+import { useLanguageStore } from "@/store/language.store";
 
-export default function ChatArea() {
+const translations = {
+  en: {
+    manageGroup: "Manage group",
+    today: "Today",
+    noMessagesSayHello: "No messages yet. Say hello! 👋",
+    isTyping: "is typing...",
+    newMessages: "New Messages ↓",
+    readyToSendAsImage: "Ready to send as image",
+    remove: "Remove",
+    typeAMessage: "Type a message...",
+    members: "members",
+    activeNow: "Active now",
+    offline: "Offline",
+    sent: "Sent",
+    read: "Read",
+    sending: "...",
+    group: "Group"
+  },
+  vi: {
+    manageGroup: "Quản lý nhóm",
+    today: "Hôm nay",
+    noMessagesSayHello: "Chưa có tin nhắn. Gửi lời chào nào! 👋",
+    isTyping: "đang soạn tin...",
+    newMessages: "Tin nhắn mới ↓",
+    readyToSendAsImage: "Sẵn sàng gửi hình ảnh",
+    remove: "Xóa",
+    typeAMessage: "Nhập tin nhắn...",
+    members: "thành viên",
+    activeNow: "Đang hoạt động",
+    offline: "Ngoại tuyến",
+    sent: "Đã gửi",
+    read: "Đã xem",
+    sending: "...",
+    group: "Nhóm"
+  }
+};
+
+interface ChatAreaProps {
+  onBack?: () => void;
+}
+
+export default function ChatArea({ onBack }: ChatAreaProps) {
   const { activeRoomId, messagesByRoom, addMessage, conversations, typingUsers, onlineUsers } = useChatStore();
   const { user } = useAuthStore();
   const { socket } = useSocket();
   const { resolvedTheme } = useTheme();
   const { startAudioCall, startVideoCall, isBusy } = useCall();
+  const { language } = useLanguageStore();
+  const t = translations[language];
 
   const [inputText, setInputText] = useState("");
   const [shareMsg, setShareMsg] = useState<any>(null);
@@ -45,7 +89,7 @@ export default function ChatArea() {
   const isGroupConversation = activeConv?.kind === "group";
   const otherParticipant = activeConv?.participants?.find((p: any) => p.id !== user?.id);
   const chatTitle = isGroupConversation
-    ? activeConv?.name || `Group (${activeConv?.participants?.length || 0})`
+    ? activeConv?.name || `${t.group} (${activeConv?.participants?.length || 0})`
     : otherParticipant?.name || otherParticipant?.email || "Chat";
 
   const handleStartAudioCall = () => {
@@ -230,10 +274,24 @@ export default function ChatArea() {
     <section className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 relative h-full">
       <header className="sticky top-0 w-full z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex justify-between items-center px-6 py-3 border-b border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex items-center gap-4">
+          {/* Nút Back - chỉ hiện trên mobile */}
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="md:hidden p-2 -ml-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
+              title="Back"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-linear-to-tr from-indigo-500 to-primary text-white flex items-center justify-center font-bold">
-                {chatTitle[0]?.toUpperCase() || "?"}
+              <div className="w-10 h-10 rounded-full bg-linear-to-tr from-indigo-500 to-blue-600 text-white flex items-center justify-center font-bold overflow-hidden">
+                {!isGroupConversation && otherParticipant?.avatar ? (
+                  <img src={otherParticipant.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  chatTitle[0]?.toUpperCase() || "?"
+                )}
               </div>
               <span className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white dark:border-slate-950 rounded-full ${isOtherOnline ? "bg-emerald-500" : "bg-slate-400"}`} />
             </div>
@@ -246,7 +304,7 @@ export default function ChatArea() {
           />
               <h2 className="font-sans text-lg font-semibold leading-tight text-on-surface text-slate-700 dark:text-slate-200">{chatTitle}</h2>
               <p className={`text-xs font-medium ${isOtherOnline ? "text-emerald-600" : "text-slate-400"}`}>
-                {isGroupConversation ? `${activeConv?.participants?.length || 0} members` : isOtherOnline ? "Active now" : "Offline"}
+                {isGroupConversation ? `${activeConv?.participants?.length || 0} ${t.members}` : isOtherOnline ? t.activeNow : t.offline}
               </p>
             </div>
           </div>
@@ -275,7 +333,7 @@ export default function ChatArea() {
           <button
             onClick={() => isGroupConversation && setShowGroupManage(true)}
             className="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 transition-opacity text-slate-600 dark:text-slate-400"
-            title={isGroupConversation ? "Manage group" : "More"}
+            title={isGroupConversation ? t.manageGroup : "More"}
           >
             <MoreVertical className="w-5 h-5" />
           </button>
@@ -287,7 +345,7 @@ export default function ChatArea() {
         <div className="sticky top-0 z-20">
           <FriendRequestBanner
             receiverId={otherParticipant.id}
-            onSendRequest={() => toast.success("Đã gửi lời mời kết bạn!")}
+            onSendRequest={() => {}}
           />
         </div>
       )}
@@ -300,7 +358,7 @@ export default function ChatArea() {
             className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-300 transition-colors hover:bg-white/10"
           >
             <Users className="h-4 w-4" />
-            Manage group
+            {t.manageGroup}
           </button>
         </div>
       )}
@@ -309,31 +367,38 @@ export default function ChatArea() {
 
         <div className="flex justify-center">
           <span className="px-3 py-1 bg-surface-container-high rounded-full text-[10px] font-semibold text-outline tracking-wider uppercase">
-            Today
+            {t.today}
           </span>
         </div>
 
         {loadingHistory ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
           </div>
         ) : messages.length === 0 ? (
-          <div className="text-center text-outline text-sm py-8">No messages yet. Say hello! 👋</div>
+          <div className="text-center text-outline text-sm py-8">{t.noMessagesSayHello}</div>
         ) : (
           messages.map((msg) => {
             const isMine = msg.senderId === user?.id;
             const isImage = isImageMessage(msg);
+            const sender = activeConv?.participants?.find((p: any) => p.id === msg.senderId);
+            const senderAvatar = isMine ? user?.avatar : sender?.avatar;
+            const senderInitial = isMine ? (user?.name?.[0]?.toUpperCase() || "U") : (sender?.name?.[0]?.toUpperCase() || "?");
             return (
               <div key={msg.id} className={`flex items-end gap-3 max-w-[80%] ${isMine ? "ml-auto flex-row-reverse" : ""}`}>
-                <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0 text-xs font-bold text-slate-600 dark:text-slate-300">
-                  {isMine ? user?.name?.[0]?.toUpperCase() || "U" : chatTitle[0]?.toUpperCase() || "?"}
+                <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0 text-xs font-bold text-slate-600 dark:text-slate-300 overflow-hidden">
+                  {senderAvatar ? (
+                    <img src={senderAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    senderInitial
+                  )}
                 </div>
                 <div className={`space-y-1 items-end flex flex-col ${!isMine && "items-start"}`}>
                   <div
                     className={`relative group ${isImage
                       ? ""
                       : isMine
-                        ? "p-4 text-sm leading-relaxed bg-linear-to-br from-primary to-primary-container text-white rounded-xl rounded-br-sm shadow-md shadow-primary/10"
+                        ? "p-4 text-sm leading-relaxed bg-linear-to-br from-blue-500 to-blue-600 text-white rounded-xl rounded-br-sm shadow-md shadow-blue-500/20"
                         : "p-4 text-sm leading-relaxed bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl rounded-bl-sm"
                       }`}
                   >
@@ -356,7 +421,7 @@ export default function ChatArea() {
                     )}
                     <button
                       onClick={() => setShareMsg(msg)}
-                      className={`absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-primary ${isMine ? "-left-10" : "-right-10"
+                      className={`absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-blue-500 ${isMine ? "-left-10" : "-right-10"
                         }`}
                       title="Share Message"
                     >
@@ -369,7 +434,7 @@ export default function ChatArea() {
                     </p>
                     {isMine && (
                       <span className="text-[11px] text-slate-600 dark:text-slate-300 px-1">
-                        {msg.status === "sending" ? "..." : msg.status === "sent" ? "Sent" : "Read"}
+                        {msg.status === "sending" ? t.sending : msg.status === "sent" ? t.sent : t.read}
                       </span>
                     )}
                   </div>
@@ -388,7 +453,7 @@ export default function ChatArea() {
               <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
             </div>
             <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 italic">
-              {chatTitle} is typing...
+              {chatTitle} {t.isTyping}
             </span>
           </div>
         )}
@@ -400,9 +465,9 @@ export default function ChatArea() {
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20">
           <button
             onClick={() => scrollToBottom("smooth")}
-            className="flex items-center gap-2 bg-primary text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all"
+            className="flex items-center gap-2 bg-blue-500 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all"
           >
-            New Messages ↓
+            {t.newMessages}
           </button>
         </div>
       )}
@@ -438,13 +503,13 @@ export default function ChatArea() {
               <img src={pendingImage.dataUrl} alt={pendingImage.name} className="h-14 w-14 rounded-none border-0 ring-0 shadow-none object-cover" />
               <div className="min-w-0">
                 <p className="text-sm font-medium text-on-surface truncate">{pendingImage.name}</p>
-                <p className="text-xs text-outline">Ready to send as image</p>
+                <p className="text-xs text-outline">{t.readyToSendAsImage}</p>
               </div>
               <button
                 onClick={() => setPendingImage(null)}
                 className="ml-2 rounded-full px-3 py-1 text-xs font-semibold text-outline hover:bg-surface-container-high"
               >
-                Remove
+                {t.remove}
               </button>
             </div>
           )}
@@ -471,13 +536,13 @@ export default function ChatArea() {
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
               className="flex-1 bg-transparent border-none focus:ring-0 text-base resize-none max-h-36 placeholder:text-slate-500 dark:placeholder:text-slate-400 outline-none text-slate-900 dark:text-slate-100"
-              placeholder="Type a message..."
+              placeholder={t.typeAMessage}
               rows={1}
             />
             <button
               onClick={handleSend}
               disabled={!inputText.trim() && !pendingImage}
-              className="p-3 bg-blue-500 text-white rounded-xl hover:scale-105 active:scale-95 transition-transform flex items-center justify-center shadow-lg shadow-primary/20 disabled:opacity-50 disabled:hover:scale-100"
+              className="p-3 bg-blue-500 text-white rounded-xl hover:scale-105 active:scale-95 transition-transform flex items-center justify-center shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:hover:scale-100"
             >
               <Send className="w-5 h-5 fill-current" />
             </button>

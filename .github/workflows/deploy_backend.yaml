@@ -1,4 +1,4 @@
-name: Deploy Backend to EC2
+name: Deploy Backend to EC2 with Docker
 
 on:
   push:
@@ -9,15 +9,12 @@ on:
       - '.github/workflows/deploy_backend.yaml'
 
 jobs:
-
   test:
     name: Test Backend
     runs-on: ubuntu-latest
-
     defaults:
       run:
         working-directory: ./XConnect_backend
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -48,139 +45,75 @@ jobs:
             echo "No test script found, skipping tests."
           fi
 
-  build:
-    name: Build Backend
+  build-and-push:
+    name: Build and Push Docker Image
     needs: test
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: ./XConnect_backend
-
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          version: 9
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
         with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: ./XConnect_backend/pnpm-lock.yaml
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Generate Prisma Client
-        run: pnpm prisma generate
-
-      - name: Build project
-        run: pnpm run build
-
-      - name: Debug dist
-        run: |
-          echo "=== DIST ==="
-          find dist -maxdepth 5
-
-      - name: Upload dist artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-dist
-          path: XConnect_backend/dist
-
-      - name: Upload backend files
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-files
-          path: |
-            XConnect_backend/package.json
-            XConnect_backend/pnpm-lock.yaml
-            XConnect_backend/prisma
+          context: ./XConnect_backend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:latest
 
   deploy:
     name: Deploy to EC2
-    needs: build
+    needs: build-and-push
     runs-on: ubuntu-latest
-
     steps:
-      - name: Download dist artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-dist
-          path: XConnect_backend/dist
-
-      - name: Download backend files
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-files
-          path: XConnect_backend
-
-      - name: Debug downloaded files
-        run: |
-          echo "=== ROOT ==="
-          ls -la
-
-          echo "=== BACKEND FILES ==="
-          find XConnect_backend -maxdepth 5
-
-      - name: Copy backend files to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "XConnect_backend/*"
-          target: "/home/${{ secrets.EC2_USERNAME }}/"
-
-      - name: Deploy on EC2
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-
           script: |
             set -e
 
-            export NVM_DIR="/home/${{ secrets.EC2_USERNAME }}/.nvm"
-            export PATH="$NVM_DIR/versions/node/v24.15.0/bin:$PATH"
-
-            echo "=== NODE VERSION ==="
-            node -v
-            npm -v
-            pnpm -v
-
-            cd /home/${{ secrets.EC2_USERNAME }}/XConnect_backend
-
-            echo "=== PROJECT FILES ==="
-            find . -maxdepth 5
-
-            echo "=== INSTALL PRODUCTION DEPS ==="
-            pnpm install --frozen-lockfile
-
-            echo "=== GENERATE PRISMA CLIENT ==="
-            pnpm prisma generate
-
-            if ! command -v pm2 &> /dev/null; then
-              echo "=== INSTALL PM2 ==="
-              npm install -g pm2
+            # Đảm bảo Docker được cài đặt (nếu chưa có)
+            if ! command -v docker &> /dev/null; then
+              echo "=== INSTALLING DOCKER ==="
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sudo sh get-docker.sh
+              sudo systemctl enable docker
+              sudo systemctl start docker
+              sudo usermod -aG docker $USER
+              
+              # Tắt PM2 đang chạy bản cũ (chuyển giao công nghệ)
+              if command -v pm2 &> /dev/null; then
+                echo "=== STOPPING OLD PM2 INSTANCES ==="
+                pm2 delete xconnect-backend || true
+                pm2 save || true
+              fi
             fi
 
-            echo "=== RESTART APPLICATION ==="
+            echo "=== PULLING NEW DOCKER IMAGE ==="
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:latest
 
-            pm2 delete xconnect-backend || true
+            echo "=== STOPPING OLD CONTAINER ==="
+            sudo docker stop xconnect-backend || true
+            sudo docker rm xconnect-backend || true
 
-            pm2 start dist/src/main.js --name xconnect-backend
+            echo "=== STARTING NEW CONTAINER ==="
+            # Sử dụng file .env cũ đã có trên server từ đợt deploy PM2 trước
+            sudo docker run -d --name xconnect-backend \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              --env-file /home/${{ secrets.EC2_USERNAME }}/XConnect_backend/.env \
+              ${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:latest
 
-            pm2 save
-
-            echo "=== PM2 STATUS ==="
-            pm2 status
-
-            echo "=== HEALTH CHECK ==="
-            sleep 5
+            echo "=== DEPLOYMENT COMPLETED ==="
+            sudo docker ps | grep xconnect-backend

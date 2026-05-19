@@ -162,10 +162,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     try {
       await track.setEnabled(!nextMuted);
       setIsMicMuted(nextMuted);
-      toast.info(nextMuted ? "Đã tắt mic" : "Đã bật mic");
     } catch (error) {
       console.error("Failed to toggle microphone", error);
-      toast.error("Không thể đổi trạng thái mic");
     }
   }, [isMicMuted]);
 
@@ -178,10 +176,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     try {
       await track.setEnabled(!nextOff);
       setIsCameraOff(nextOff);
-      toast.info(nextOff ? "Đã tắt camera" : "Đã bật camera");
     } catch (error) {
       console.error("Failed to toggle camera", error);
-      toast.error("Không thể đổi trạng thái camera");
     }
   }, [isCameraOff]);
 
@@ -193,7 +189,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     const previousSession = previousSessionRef.current;
 
     if (session?.phase === "active" && previousSession?.phase !== "active") {
-      toast.success(`Cuộc gọi ${getCallTypeLabel(session.isVideo)} đã kết nối thành công`);
+      // Call connected - UI overlay already shows this clearly
     }
 
     previousSessionRef.current = session;
@@ -312,13 +308,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
         }
 
         if (!token) {
-          toast.error("Không lấy được Agora token");
+          console.error("Failed to get Agora token");
           await resetSession();
           return;
         }
 
       if (!appId) {
-        toast.error("Thiếu NEXT_PUBLIC_AGORA_APP_ID cho Agora");
+        console.error("Missing NEXT_PUBLIC_AGORA_APP_ID");
         await resetSession();
         return;
       }
@@ -401,7 +397,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error("Failed to start Agora call", error);
-        toast.error("Không thể khởi tạo cuộc gọi Agora");
         await resetSession();
       }
     };

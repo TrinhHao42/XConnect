@@ -7,6 +7,36 @@ import { useAuthStore } from "@/store/auth.store";
 import { useRouter } from "next/navigation";
 import { api } from "@/libs/api";
 import { toast } from "sonner";
+import { useLanguageStore } from "@/store/language.store";
+
+const translations = {
+  en: {
+    createAccount: "Create account",
+    fullName: "Full Name",
+    emailAddress: "Email address",
+    password: "Password",
+    confirmPassword: "Confirm Password",
+    createAccountBtn: "Create Account",
+    alreadyHaveAccount: "Already have an account?",
+    login: "Login",
+    passwordsNotMatch: "Passwords do not match",
+    registerSuccess: "Account registered successfully!",
+    registerFailed: "Registration failed. Please try again."
+  },
+  vi: {
+    createAccount: "Tạo tài khoản",
+    fullName: "Họ và Tên",
+    emailAddress: "Địa chỉ Email",
+    password: "Mật khẩu",
+    confirmPassword: "Xác nhận mật khẩu",
+    createAccountBtn: "Đăng ký",
+    alreadyHaveAccount: "Đã có tài khoản?",
+    login: "Đăng nhập",
+    passwordsNotMatch: "Mật khẩu không khớp",
+    registerSuccess: "Đăng ký tài khoản thành công!",
+    registerFailed: "Đăng ký thất bại. Vui lòng thử lại."
+  }
+};
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -18,13 +48,15 @@ export default function RegisterPage() {
 
   const { setAuth } = useAuthStore();
   const router = useRouter();
+  const { language } = useLanguageStore();
+  const t = translations[language];
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     if (password !== repassword) {
-      toast.error("Mật khẩu nhập lại không khớp");
+      toast.error(t.passwordsNotMatch);
       setLoading(false);
       return;
     }
@@ -37,10 +69,10 @@ export default function RegisterPage() {
         name,
       });
       setAuth(data.user, data.accessToken);
-      toast.success("Đăng ký tài khoản thành công!");
+      toast.success(t.registerSuccess);
       router.push("/chat");
     } catch (e: any) {
-      toast.error(e.message || "Đăng ký thất bại. Vui lòng thử lại.");
+      toast.error(e.message || t.registerFailed);
     } finally {
       setLoading(false);
     }
@@ -48,18 +80,14 @@ export default function RegisterPage() {
 
   return (
     <main className="relative z-10 w-full max-w-[440px] animate-in fade-in zoom-in duration-500">
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 dark:shadow-none p-8 md:p-12 flex flex-col items-center border border-slate-100 dark:border-slate-800">
-        <div className="mb-10 flex flex-col items-center text-center">
-          <div className="w-20 h-20 rounded-3xl bg-linear-to-br from-indigo-500 to-blue-600 flex items-center justify-center mb-6 shadow-xl shadow-blue-500/30 transform hover:rotate-12 transition-transform duration-300">
-            <Sparkles className="text-white w-10 h-10" />
-          </div>
-          <h1 className="font-black text-3xl text-slate-900 dark:text-white tracking-tight mb-2 uppercase">Create account</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Join XConnect today</p>
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 dark:shadow-none p-4 md:p-12 flex flex-col items-center border border-slate-100 dark:border-slate-800">
+        <div className="mb-3 flex flex-col items-center text-center">
+          <h1 className="font-black text-3xl text-slate-900 dark:text-white tracking-tight mb-2 uppercase">{t.createAccount}</h1>
         </div>
 
         <form onSubmit={handleRegister} className="w-full space-y-5">
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ml-1">Full Name</label>
+            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ml-1">{t.fullName}</label>
             <div className="relative group">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors w-5 h-5" />
               <input
@@ -74,7 +102,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ml-1">Email address</label>
+            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ml-1">{t.emailAddress}</label>
             <div className="relative group">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors w-5 h-5" />
               <input
@@ -89,7 +117,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ml-1">Password</label>
+            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ml-1">{t.password}</label>
             <div className="relative group">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors w-5 h-5" />
               <input
@@ -111,7 +139,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ml-1">Confirm Password</label>
+            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ml-1">{t.confirmPassword}</label>
             <div className="relative group">
               <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors w-5 h-5" />
               <input
@@ -130,23 +158,16 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white py-4 rounded-2xl font-bold text-sm shadow-xl shadow-blue-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:scale-100"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create Account"}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t.createAccountBtn}
           </button>
         </form>
 
-        <p className="mt-10 text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
-          Already have an account?{" "}
+        <p className="mt-8 text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+          {t.alreadyHaveAccount}{" "}
           <Link href="/login" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">
-            Login
+            {t.login}
           </Link>
         </p>
-      </div>
-      
-      <div className="mt-10 flex justify-center items-center gap-8 opacity-40 hover:opacity-100 transition-opacity duration-500">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-400">Secure Registration</span>
-        </div>
       </div>
     </main>
   );

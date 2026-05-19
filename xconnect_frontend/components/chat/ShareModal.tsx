@@ -1,5 +1,23 @@
 import { useState } from "react";
 import { X, Search } from "lucide-react";
+import { useLanguageStore } from "@/store/language.store";
+
+const translations = {
+  en: {
+    shareMessage: "Share message",
+    originalSender: "Original Sender",
+    searchFriends: "Search friends or conversations...",
+    cancel: "Cancel",
+    send: "Send"
+  },
+  vi: {
+    shareMessage: "Chia sẻ tin nhắn",
+    originalSender: "Người gửi ban đầu",
+    searchFriends: "Tìm bạn bè hoặc cuộc trò chuyện...",
+    cancel: "Hủy",
+    send: "Gửi"
+  }
+};
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -10,6 +28,8 @@ interface ShareModalProps {
 export default function ShareModal({ isOpen, onClose, messageToShare }: ShareModalProps) {
   const [search, setSearch] = useState("");
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
+  const { language } = useLanguageStore();
+  const t = translations[language];
 
   if (!isOpen) return null;
 
@@ -30,7 +50,7 @@ export default function ShareModal({ isOpen, onClose, messageToShare }: ShareMod
       <div className="w-full max-w-lg bg-surface-container-lowest rounded-[28px] shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
         {/* Header */}
         <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold tracking-tight">Share message</h2>
+          <h2 className="text-xl font-bold tracking-tight">{t.shareMessage}</h2>
           <button onClick={onClose} className="p-2 hover:bg-surface-container-high rounded-full transition-colors">
             <X className="w-5 h-5 text-outline" />
           </button>
@@ -46,7 +66,7 @@ export default function ShareModal({ isOpen, onClose, messageToShare }: ShareMod
                 </div>
                 <div className="flex-1">
                   <div className="flex items-baseline gap-2 mb-1">
-                    <span className="text-sm font-bold text-on-surface">Original Sender</span>
+                    <span className="text-sm font-bold text-on-surface">{t.originalSender}</span>
                   </div>
                   <div className="bg-surface-container-lowest p-3 rounded-lg rounded-tl-none border border-outline-variant/10 text-sm text-on-surface-variant leading-relaxed">
                     {messageToShare.content}
@@ -66,7 +86,7 @@ export default function ShareModal({ isOpen, onClose, messageToShare }: ShareMod
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-surface-container-low border-none rounded-full pl-12 pr-6 py-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-              placeholder="Search friends or conversations..."
+              placeholder={t.searchFriends}
             />
           </div>
         </div>
@@ -102,14 +122,14 @@ export default function ShareModal({ isOpen, onClose, messageToShare }: ShareMod
         {/* Actions */}
         <footer className="p-6 bg-surface-container-low flex items-center justify-end gap-3 mt-auto">
           <button onClick={onClose} className="px-6 py-2.5 rounded-full text-sm font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors">
-            Cancel
+            {t.cancel}
           </button>
           <button
             disabled={selectedFriends.length === 0}
             onClick={onClose}
             className="px-8 py-2.5 rounded-full bg-gradient-to-br from-primary to-primary-container text-white text-sm font-bold shadow-lg shadow-primary/20 active:scale-95 transition-transform disabled:opacity-50 disabled:active:scale-100"
           >
-            Send {selectedFriends.length > 0 && `(${selectedFriends.length})`}
+            {t.send} {selectedFriends.length > 0 && `(${selectedFriends.length})`}
           </button>
         </footer>
       </div>

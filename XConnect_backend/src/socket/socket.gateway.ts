@@ -190,4 +190,13 @@ export class SocketGateway
     }
     return false;
   }
+
+  // Broadcast profile update (avatar/name) to ALL connected clients
+  broadcastProfileUpdate(
+    userId: string,
+    profile: { id: string; name?: string; avatar?: string },
+  ) {
+    this.server.emit('userProfileUpdated', { userId, ...profile });
+    this.logger.log(`Broadcasted profile update for user ${userId}`);
+  }
 }

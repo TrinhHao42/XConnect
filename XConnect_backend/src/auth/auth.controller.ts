@@ -31,6 +31,13 @@ export class AuthController {
     return { accessToken: data.accessToken, user: data.user };
   }
 
+  @Post('supabase-login')
+  async supabaseLogin(@Body('access_token') accessToken: string, @Res({ passthrough: true }) res: Response) {
+    const data = await this.authService.supabaseLogin(accessToken);
+    this.setRefreshTokenCookie(res, data.refreshToken);
+    return { accessToken: data.accessToken, user: data.user };
+  }
+
   @Post('refresh')
   async refresh(
     @Req() req: Request,
@@ -50,7 +57,7 @@ export class AuthController {
 
     await this.authService.logout(accessToken, refreshToken);
     res.clearCookie('refreshToken');
-    return { message: 'Đăng xuất thành công' };
+    return { message: 'Logged out successfully' };
   }
 
   @UseGuards(JwtAuthGuard)

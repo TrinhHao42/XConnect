@@ -10,11 +10,15 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { SocketGateway } from '../../socket/socket.gateway';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly socketGateway: SocketGateway,
+  ) {}
 
   @Get('profile')
   async getProfile(@Req() req: any) {
@@ -28,7 +32,16 @@ export class UsersController {
     @Body() updateData: { name?: string; avatar?: string; bio?: string },
   ) {
     const userId = req.user.userId;
-    return this.usersService.updateProfile(userId, updateData);
+    const updated = await this.usersService.updateProfile(userId, updateData);
+
+    // Broadcast profile update to ALL connected clients so they can refresh avatars
+    this.socketGateway.broadcastProfileUpdate(userId, {
+      id: updated.id,
+      name: updated.name ?? undefined,
+      avatar: updated.avatar ?? undefined,
+    });
+
+    return updated;
   }
 
   @Get('search')
