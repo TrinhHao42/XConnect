@@ -35,21 +35,20 @@ export class AgoraController {
 
   @Get('token')
   async getToken(
-    @Req() req: any,
+    @Req() req: { headers?: { authorization?: string }; query?: { token?: string } },
     @Query('channelName') channelName: string,
     @Query('uid') uidQuery?: string,
     @Query('expiry') expirySec?: string,
   ) {
     const authToken =
-      req.headers?.authorization?.split(' ')[1] || req.query?.token;
+      req.headers?.authorization?.split(' ')[1] ?? (req.query?.token as string | undefined);
     if (!authToken) throw new UnauthorizedException('Missing auth token');
 
-    const payload = await this.jwtService.verifyAsync(authToken).catch(() => {
+    const payload = await this.jwtService.verifyAsync<{ sub?: string; userId?: string; id?: string }>(authToken).catch(() => {
       throw new UnauthorizedException('Invalid token');
     });
 
-    const userId =
-      payload?.sub || payload?.userId || String(payload?.id || '0');
+    const userId = String(payload?.sub || payload?.userId || payload?.id || '0');
     const uid = toAgoraUid(uidQuery ?? userId);
 
     const appId = process.env.AGORA_APP_ID;

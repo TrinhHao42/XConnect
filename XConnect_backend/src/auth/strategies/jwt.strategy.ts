@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+import { Request } from 'express';
 import { AuthService } from '../auth.service';
 
 const publicKey = fs.readFileSync(
@@ -22,8 +23,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(req: any, payload: any) {
-    const accessToken = req.headers['authorization']?.split(' ')[1];
+  async validate(req: Request, payload: { sub: string; [key: string]: unknown }) {
+    const authHeader = req.headers['authorization'] ?? '';
+    const accessToken = typeof authHeader === 'string'
+      ? authHeader.split(' ')[1]
+      : undefined;
     if (accessToken) {
       const isBlacklisted =
         await this.authService.isTokenBlacklisted(accessToken);
@@ -32,6 +36,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }
     }
 
-    return { userId: payload.sub };
+    return { userId: String(payload.sub) };
   }
 }
