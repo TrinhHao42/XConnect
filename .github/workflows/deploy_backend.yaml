@@ -12,35 +12,32 @@ jobs:
   test:
     name: Test Backend
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: ./XConnect_backend
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: ./XConnect_backend/pnpm-lock.yaml
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ./XConnect_backend/package-lock.json
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: Run Linter
-        run: pnpm run lint
+        run: npm run lint
 
       - name: Run Tests
         run: |
-          if pnpm run | grep -q "test"; then
-            pnpm run test
+          if npm run | grep -q "test"; then
+            npm run test
           else
             echo "No test script found, skipping tests."
           fi
@@ -49,6 +46,7 @@ jobs:
     name: Build and Push Docker Image
     needs: test
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -73,6 +71,7 @@ jobs:
     name: Deploy to EC2
     needs: build-and-push
     runs-on: ubuntu-latest
+
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -83,37 +82,19 @@ jobs:
           script: |
             set -e
 
-            # Đảm bảo Docker được cài đặt (nếu chưa có)
-            if ! command -v docker &> /dev/null; then
-              echo "=== INSTALLING DOCKER ==="
-              curl -fsSL https://get.docker.com -o get-docker.sh
-              sudo sh get-docker.sh
-              sudo systemctl enable docker
-              sudo systemctl start docker
-              sudo usermod -aG docker $USER
-              
-              # Tắt PM2 đang chạy bản cũ (chuyển giao công nghệ)
-              if command -v pm2 &> /dev/null; then
-                echo "=== STOPPING OLD PM2 INSTANCES ==="
-                pm2 delete xconnect-backend || true
-                pm2 save || true
-              fi
-            fi
-
-            echo "=== PULLING NEW DOCKER IMAGE ==="
+            echo "=== PULL NEW IMAGE ==="
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:latest
 
-            echo "=== STOPPING OLD CONTAINER ==="
+            echo "=== STOP OLD CONTAINER ==="
             sudo docker stop xconnect-backend || true
             sudo docker rm xconnect-backend || true
 
-            echo "=== STARTING NEW CONTAINER ==="
-            # Sử dụng file .env cũ đã có trên server từ đợt deploy PM2 trước
+            echo "=== RUN NEW CONTAINER ==="
             sudo docker run -d --name xconnect-backend \
               --restart unless-stopped \
               -p 8080:8080 \
               --env-file /home/${{ secrets.EC2_USERNAME }}/XConnect_backend/.env \
               ${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:latest
 
-            echo "=== DEPLOYMENT COMPLETED ==="
+            echo "=== DONE ==="
             sudo docker ps | grep xconnect-backend
