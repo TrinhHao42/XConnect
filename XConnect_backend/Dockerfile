@@ -5,8 +5,8 @@ WORKDIR /app
 # Cài đặt pnpm
 RUN npm install -g pnpm
 
-# Copy file package + npmrc
-COPY package.json pnpm-lock.yaml .npmrc ./
+# Copy file package + npmrc + workspace
+COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml ./
 
 # Cài đặt toàn bộ dependencies (bao gồm devDependencies để build)
 RUN pnpm install --frozen-lockfile
@@ -30,8 +30,8 @@ WORKDIR /app
 # Cài đặt pnpm
 RUN npm install -g pnpm
 
-# Copy file package + npmrc
-COPY package.json pnpm-lock.yaml .npmrc ./
+# Copy file package + npmrc + workspace
+COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml ./
 
 # Chỉ cài đặt production dependencies để giảm dung lượng
 RUN pnpm install --prod --frozen-lockfile
