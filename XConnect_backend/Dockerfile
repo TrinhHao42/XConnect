@@ -31,7 +31,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # chỉ install production deps
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # copy build output
 COPY --from=builder /app/dist ./dist
