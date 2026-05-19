@@ -73,15 +73,53 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-      if (error) throw error;
+      const isCapacitor = typeof window !== "undefined" && (window as any).Capacitor;
+      
+      if (isCapacitor) {
+        setLoading(true);
+        const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth");
+        // Initialize GoogleAuth client-side
+        await GoogleAuth.initialize();
+        const googleUser = await GoogleAuth.signIn();
+        
+        if (!googleUser || !googleUser.authentication.idToken) {
+          throw new Error("No Identity Token returned from Google Auth.");
+        }
+        
+        // Log in to Supabase via native ID token exchange
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: "google",
+          token: googleUser.authentication.idToken,
+        });
+        
+        if (error) throw error;
+        
+        if (data.session) {
+          // Verify session token against NestJS backend to retrieve central auth token
+          const response = await api.post<{ accessToken: string; user: any }>("/auth/supabase-login", {
+            access_token: data.session.access_token,
+          });
+          
+          setAuth(response.user, response.accessToken);
+          toast.success(t.loginSuccess);
+          router.push("/chat");
+        } else {
+          throw new Error("Failed to create Supabase session.");
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+        if (error) throw error;
+      }
     } catch (e: any) {
+      console.error("Google login error:", e);
       toast.error(e.message || t.googleLoginFailed);
+    } finally {
+      setLoading(false);
     }
   };
 
