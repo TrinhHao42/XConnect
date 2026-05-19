@@ -42,11 +42,10 @@ export class ChatGateway
         client.handshake.auth?.token ||
         client.handshake.headers.authorization?.split(' ')[1];
 
-      if (!token) return; // Silent return, let CallGateway handle the main rejection if needed
+      if (!token) return;
       const payload = await this.jwtService.verifyAsync(token);
       client.data.user = payload;
-    } catch (error) {
-      // we might not disconnect here, because CallGateway could also connect, but we better be safe
+    } catch {
       client.disconnect();
     }
   }
@@ -60,7 +59,7 @@ export class ChatGateway
     @MessageBody() data: { conversationId: string },
   ) {
     if (data.conversationId) {
-      client.join(data.conversationId);
+      void client.join(data.conversationId);
       this.logger.log(`Client ${client.id} joined room ${data.conversationId}`);
     }
   }
@@ -81,7 +80,7 @@ export class ChatGateway
       if (!user) throw new Error('Not authenticated');
 
       const { conversationId, content, tempId } = payload;
-      const userId = user.sub || user.userId || String(user.id);
+      const userId = String(user.sub || user.userId || user.id);
 
       // Lưu vào Database
       const message = await this.chatService.saveMessage(
@@ -102,9 +101,33 @@ export class ChatGateway
       client
         .to(conversationId)
         .emit('newMessage', tempId ? { ...message, tempId } : message);
-    } catch (e) {
-      this.logger.error(`Error sending message: ${e.message}`);
+    } catch (e: unknown) {
+      const err = e as Error;
+      this.logger.error(`Error sending message: ${err.message}`);
       client.emit('error', { message: 'Cannot send message' });
+    }
+  }
+
+  @SubscribeMessage('recallMessage')
+  async handleRecallMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { messageId: string; conversationId: string },
+  ) {
+    try {
+      const user = client.data.user;
+      if (!user) throw new Error('Not authenticated');
+
+      const userId = String(user.sub || user.userId || user.id);
+      const { messageId, conversationId } = payload;
+
+      await this.chatService.recallMessage(messageId, userId);
+
+      // Phát sự kiện thu hồi tin nhắn tới tất cả client trong room bao gồm cả người gửi
+      this.server.to(conversationId).emit('messageRecalled', { messageId, conversationId });
+    } catch (e: unknown) {
+      const err = e as Error;
+      this.logger.error(`Error recalling message: ${err.message}`);
+      client.emit('error', { message: err.message || 'Cannot recall message' });
     }
   }
 }

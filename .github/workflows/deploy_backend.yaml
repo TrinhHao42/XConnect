@@ -1,76 +1,104 @@
-deploy:
-  name: Push to EC2
-  needs: build
-  runs-on: ubuntu-latest
+name: Deploy Backend to EC2 with Docker (Optimized)
 
-  steps:
-    - name: Download Build Artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: backend-dist
-        path: dist
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'XConnect_backend/**'
+      - '.github/workflows/deploy_backend.yaml'
 
-    - name: Download Package Files
-      uses: actions/download-artifact@v4
-      with:
-        name: backend-package
-        path: .
+jobs:
+  test:
+    name: Test Backend
+    runs-on: ubuntu-latest
 
-    - name: Checkout repository for prisma folder
-      uses: actions/checkout@v4
+    defaults:
+      run:
+        working-directory: ./XConnect_backend
 
-    - name: Copy files to EC2
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_SSH_KEY }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-        source: "dist,prisma,package.json,pnpm-lock.yaml"
-        target: "/home/${{ secrets.EC2_USERNAME }}/XConnect_backend"
+      - name: Setup Node.js (with npm cache)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: XConnect_backend/package-lock.json
 
-    - name: Execute deployment commands on EC2
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_SSH_KEY }}
+      - name: Install dependencies
+        run: npm install
 
-        script: |
-          export NVM_DIR="/home/${{ secrets.EC2_USERNAME }}/.nvm"
+      - name: Run Linter
+        run: npm run lint
 
-          if [ -s "$NVM_DIR/nvm.sh" ]; then
-            . "$NVM_DIR/nvm.sh"
+      - name: Run Tests
+        run: |
+          if npm run | grep -q "test"; then
+            npm run test
+          else
+            echo "No test script found, skipping tests."
           fi
 
-          export PATH="$PATH:/home/${{ secrets.EC2_USERNAME }}/.nvm/versions/node/v24.15.0/bin"
+  build-and-push:
+    name: Build and Push Docker Image (Cached)
+    needs: test
+    runs-on: ubuntu-latest
 
-          echo "===== NODE ====="
-          which node
-          node -v
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-          echo "===== NPM ====="
-          which npm
-          npm -v
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-          echo "===== PNPM ====="
-          which pnpm
-          pnpm -v
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-          echo "===== PM2 ====="
-          if ! command -v pm2 &> /dev/null; then
-            npm install -g pm2
-          fi
+      - name: Build and push Docker image (with cache)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./XConnect_backend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:buildcache,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
-          cd /home/${{ secrets.EC2_USERNAME }}/XConnect_backend
+  deploy:
+    name: Deploy to EC2
+    needs: build-and-push
+    runs-on: ubuntu-latest
 
-          echo "===== INSTALL DEPENDENCIES ====="
-          pnpm install --frozen-lockfile
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
 
-          echo "===== GENERATE PRISMA ====="
-          npx prisma generate
+            echo "=== PULL IMAGE ==="
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:latest
 
-          echo "===== PM2 RESTART ====="
-          pm2 reload xconnect-backend || pm2 start dist/src/main.js --name xconnect-backend
+            echo "=== STOP OLD CONTAINER ==="
+            sudo docker stop xconnect-backend || true
+            sudo docker rm xconnect-backend || true
 
-          pm2 save
+            echo "=== START NEW CONTAINER ==="
+            sudo docker run -d --name xconnect-backend \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              --env-file /home/${{ secrets.EC2_USERNAME }}/XConnect_backend/.env \
+              ${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:latest
+
+            echo "=== DONE ==="
+            sudo docker ps | grep xconnect-backend

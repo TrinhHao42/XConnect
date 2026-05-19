@@ -6,6 +6,28 @@ import { useChatStore } from "@/store/chat.store";
 import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/libs/api";
 import GroupCreateModal from "./GroupCreateModal";
+import { useLanguageStore } from "@/store/language.store";
+
+const translations = {
+  en: {
+    yesterday: "Yesterday",
+    noMessages: "No messages yet",
+    image: "[Image]",
+    search: "Search conversations...",
+    noConversationsFound: "No conversations found",
+    noConversationsYet: "No conversations yet",
+    groupChat: "Group chat"
+  },
+  vi: {
+    yesterday: "Hôm qua",
+    noMessages: "Chưa có tin nhắn",
+    image: "[Hình ảnh]",
+    search: "Tìm kiếm cuộc trò chuyện...",
+    noConversationsFound: "Không tìm thấy cuộc trò chuyện nào",
+    noConversationsYet: "Chưa có cuộc trò chuyện",
+    groupChat: "Nhóm"
+  }
+};
 
 interface ConversationItem {
   id: string;
@@ -18,21 +40,30 @@ interface ConversationItem {
   leaderId?: string | null;
 }
 
-function formatTime(dateStr: string) {
+function formatTime(dateStr: string, t: any) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
   const now = new Date();
   const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
   if (diffDays === 0) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  if (diffDays === 1) return "Yesterday";
+  if (diffDays === 1) return t.yesterday;
   if (diffDays < 7) return d.toLocaleDateString([], { weekday: "short" });
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-function formatPreview(content?: string) {
-  if (!content) return "No messages yet";
-  if (content.startsWith("data:image/")) return "[Image]";
-  return content;
+function formatPreview(content: string | undefined, t: any, language: "vi" | "en") {
+  if (!content) return t.noMessages;
+  if (content.startsWith("data:image/") || content.startsWith("uploading-image:")) return language === "vi" ? "[Hình ảnh]" : "[Image]";
+  if (content.startsWith("file:") || content.startsWith("uploading-file:")) return language === "vi" ? "[Tệp tin]" : "[File]";
+  
+  let clean = content;
+  if (clean.includes("<blockquote") || clean.includes("&lt;blockquote")) {
+    const divider = clean.includes("</blockquote>") ? "</blockquote>" : "&lt;/blockquote&gt;";
+    const parts = clean.split(divider);
+    const textPart = parts[parts.length - 1].trim();
+    return (language === "vi" ? "[Phản hồi] " : "[Reply] ") + textPart;
+  }
+  return clean;
 }
 
 export default function ConversationList() {
@@ -41,6 +72,8 @@ export default function ConversationList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const { language } = useLanguageStore();
+  const t = translations[language];
 
   useEffect(() => {
     const load = async () => {
@@ -63,11 +96,23 @@ export default function ConversationList() {
       return conv.name || `Group (${conv.participants?.length || 0})`;
     }
     const other = conv.participants?.find((p) => p.id !== user.id);
+    if (!other) {
+      return "My Document";
+    }
     return other?.name || other?.email || "Unknown";
   }
 
   function getInitial(name: string) {
     return name?.[0]?.toUpperCase() || "?";
+  }
+
+  function getAvatarUrl(conv: ConversationItem) {
+    if (conv.kind === "group") return null;
+    const other = conv.participants?.find((p) => p.id !== user?.id);
+    if (!other) {
+      return "/mydocument.png";
+    }
+    return other?.avatar;
   }
 
   const rawList = conversations as unknown as ConversationItem[];
@@ -86,7 +131,7 @@ export default function ConversationList() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-slate-500 dark:placeholder:text-slate-400 outline-none"
-              placeholder="Search conversations..."
+              placeholder={t.search}
             />
           </div>
           <button
@@ -107,7 +152,7 @@ export default function ConversationList() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-slate-500 dark:text-slate-400 text-sm">
-            {search ? "No conversations found" : "No conversations yet"}
+            {search ? t.noConversationsFound : t.noConversationsYet}
           </div>
         ) : (
           filtered.map((item) => {
@@ -128,16 +173,13 @@ export default function ConversationList() {
 
                 <div className="flex gap-3">
                   <div className="relative shrink-0">
-                    <div className="w-12 h-12 rounded-xl bg-linear-to-br from-indigo-400 to-primary text-white flex items-center justify-center font-bold text-lg">
-                      {getInitial(displayName)}
+                    <div className="w-12 h-12 rounded-xl bg-linear-to-br from-indigo-400 to-blue-500 text-white flex items-center justify-center font-bold text-lg overflow-hidden">
+                      {getAvatarUrl(item) ? (
+                        <img src={getAvatarUrl(item) ?? undefined} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        getInitial(displayName)
+                      )}
                     </div>
-                    <span
-                      className={`absolute -bottom-1 -right-1 w-4 h-4 border-4 rounded-full ${
-                        isActive
-                          ? "bg-emerald-500 border-slate-100 dark:border-slate-800"
-                          : "bg-slate-400 border-slate-200 dark:border-slate-900 group-hover:border-slate-100 dark:group-hover:border-slate-800 transition-colors"
-                      }`}
-                    />
                   </div>
 
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
@@ -146,16 +188,11 @@ export default function ConversationList() {
                         {displayName}
                       </h3>
                       <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                        {formatTime(item.updatedAt)}
+                        {formatTime(item.updatedAt, t)}
                       </span>
                     </div>
-                    {item.kind === "group" && (
-                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-cyan-500">
-                        Group chat
-                      </p>
-                    )}
                     <p className="text-xs truncate text-slate-600 dark:text-slate-300 font-medium">
-                      {formatPreview(lastMsg?.content)}
+                      {formatPreview(lastMsg?.content, t, language)}
                     </p>
                   </div>
                 </div>

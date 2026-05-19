@@ -6,38 +6,24 @@ import {
   Delete,
   Body,
   Param,
-  Headers,
-  UnauthorizedException,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
-import { JwtService } from '@nestjs/jwt';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import type { AuthRequest } from '../../common/types/auth-request.interface';
 
 @Controller('chat')
+@UseGuards(JwtAuthGuard)
 export class ChatController {
-  constructor(
-    private readonly chatService: ChatService,
-    private readonly jwtService: JwtService,
-  ) {}
-
-  private async getUserIdFromAuth(authHeader: string): Promise<string> {
-    try {
-      const token = authHeader?.split(' ')[1];
-      if (!token) throw new Error('No token');
-      const payload = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_SECRET || 'your-secret-key',
-      });
-      return payload.sub || payload.userId || String(payload.id);
-    } catch {
-      throw new UnauthorizedException('Token không hợp lệ hoặc không có');
-    }
-  }
+  constructor(private readonly chatService: ChatService) {}
 
   @Post('conversations')
   async createConversation(
-    @Headers('authorization') authHeader: string,
+    @Req() req: AuthRequest,
     @Body('targetUserId') targetUserId: string,
   ) {
-    const currentUserId = await this.getUserIdFromAuth(authHeader);
+    const currentUserId = String(req.user.sub || req.user.userId);
     return this.chatService.createOrGetConversation(
       currentUserId,
       targetUserId,
@@ -46,11 +32,11 @@ export class ChatController {
 
   @Post('groups')
   async createGroupConversation(
-    @Headers('authorization') authHeader: string,
+    @Req() req: AuthRequest,
     @Body('name') name: string,
     @Body('memberIds') memberIds: string[],
   ) {
-    const currentUserId = await this.getUserIdFromAuth(authHeader);
+    const currentUserId = String(req.user.sub || req.user.userId);
     return this.chatService.createGroupConversation(
       currentUserId,
       name,
@@ -59,26 +45,26 @@ export class ChatController {
   }
 
   @Get('conversations')
-  async getConversations(@Headers('authorization') authHeader: string) {
-    const currentUserId = await this.getUserIdFromAuth(authHeader);
+  async getConversations(@Req() req: AuthRequest) {
+    const currentUserId = String(req.user.sub || req.user.userId);
     return this.chatService.getUserConversations(currentUserId);
   }
 
   @Get('conversations/:id/messages')
   async getMessages(
-    @Headers('authorization') authHeader: string,
+    @Req() req: AuthRequest,
     @Param('id') conversationId: string,
   ) {
-    const currentUserId = await this.getUserIdFromAuth(authHeader);
+    const currentUserId = String(req.user.sub || req.user.userId);
     return this.chatService.getMessages(conversationId, currentUserId);
   }
 
   @Get('groups/:id')
   async getGroupDetails(
-    @Headers('authorization') authHeader: string,
+    @Req() req: AuthRequest,
     @Param('id') conversationId: string,
   ) {
-    const currentUserId = await this.getUserIdFromAuth(authHeader);
+    const currentUserId = String(req.user.sub || req.user.userId);
     return this.chatService.getConversationDetails(
       conversationId,
       currentUserId,
@@ -87,11 +73,11 @@ export class ChatController {
 
   @Post('groups/:id/members')
   async addGroupMembers(
-    @Headers('authorization') authHeader: string,
+    @Req() req: AuthRequest,
     @Param('id') conversationId: string,
     @Body('memberIds') memberIds: string[],
   ) {
-    const currentUserId = await this.getUserIdFromAuth(authHeader);
+    const currentUserId = String(req.user.sub || req.user.userId);
     return this.chatService.addGroupMembers(
       conversationId,
       currentUserId,
@@ -101,11 +87,11 @@ export class ChatController {
 
   @Post('groups/:id/leader')
   async setGroupLeader(
-    @Headers('authorization') authHeader: string,
+    @Req() req: AuthRequest,
     @Param('id') conversationId: string,
     @Body('newLeaderId') newLeaderId: string,
   ) {
-    const currentUserId = await this.getUserIdFromAuth(authHeader);
+    const currentUserId = String(req.user.sub || req.user.userId);
     return this.chatService.setGroupLeader(
       conversationId,
       currentUserId,
@@ -115,11 +101,11 @@ export class ChatController {
 
   @Post('groups/:id/leader-and-leave')
   async transferLeaderAndLeave(
-    @Headers('authorization') authHeader: string,
+    @Req() req: AuthRequest,
     @Param('id') conversationId: string,
     @Body('newLeaderId') newLeaderId: string,
   ) {
-    const currentUserId = await this.getUserIdFromAuth(authHeader);
+    const currentUserId = String(req.user.sub || req.user.userId);
     return this.chatService.transferLeadershipAndLeave(
       conversationId,
       currentUserId,
@@ -129,11 +115,11 @@ export class ChatController {
 
   @Post('groups/:id/kick/:memberId')
   async kickGroupMember(
-    @Headers('authorization') authHeader: string,
+    @Req() req: AuthRequest,
     @Param('id') conversationId: string,
     @Param('memberId') memberId: string,
   ) {
-    const currentUserId = await this.getUserIdFromAuth(authHeader);
+    const currentUserId = String(req.user.sub || req.user.userId);
     return this.chatService.kickGroupMember(
       conversationId,
       currentUserId,
@@ -143,7 +129,7 @@ export class ChatController {
 
   @Patch('groups/:id/permissions')
   async updateGroupPermissions(
-    @Headers('authorization') authHeader: string,
+    @Req() req: AuthRequest,
     @Param('id') conversationId: string,
     @Body()
     body: {
@@ -152,7 +138,7 @@ export class ChatController {
       allowedSenderIds?: string[];
     },
   ) {
-    const currentUserId = await this.getUserIdFromAuth(authHeader);
+    const currentUserId = String(req.user.sub || req.user.userId);
     return this.chatService.updateGroupPermissions(
       conversationId,
       currentUserId,
@@ -162,19 +148,29 @@ export class ChatController {
 
   @Delete('groups/:id')
   async dissolveGroup(
-    @Headers('authorization') authHeader: string,
+    @Req() req: AuthRequest,
     @Param('id') conversationId: string,
   ) {
-    const currentUserId = await this.getUserIdFromAuth(authHeader);
+    const currentUserId = String(req.user.sub || req.user.userId);
     return this.chatService.dissolveGroup(conversationId, currentUserId);
   }
 
   @Post('groups/:id/leave')
   async leaveGroup(
-    @Headers('authorization') authHeader: string,
+    @Req() req: AuthRequest,
     @Param('id') conversationId: string,
   ) {
-    const currentUserId = await this.getUserIdFromAuth(authHeader);
+    const currentUserId = String(req.user.sub || req.user.userId);
     return this.chatService.leaveGroup(conversationId, currentUserId);
+  }
+
+  @Delete('messages/:messageId')
+  async recallMessage(
+    @Req() req: AuthRequest,
+    @Param('messageId') messageId: string,
+  ) {
+    const currentUserId = String(req.user.sub || req.user.userId);
+    await this.chatService.recallMessage(messageId, currentUserId);
+    return { success: true };
   }
 }

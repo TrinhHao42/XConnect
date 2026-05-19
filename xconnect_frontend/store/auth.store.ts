@@ -9,6 +9,7 @@ interface AuthState {
   setAuth: (user: User, token: string) => void;
   updateToken: (newToken: string) => void;
   addFriendId: (friendId: string) => void;
+  updateUser: (updates: Partial<User>) => void;
   logout: () => void;
 }
 
@@ -49,6 +50,15 @@ export const useAuthStore = create<AuthState>()(
               ...state.user,
               friendIds: [...currentIds, friendId],
             },
+          };
+        });
+      },
+
+      updateUser: (updates) => {
+        set((state) => {
+          if (!state.user) return state;
+          return {
+            user: { ...state.user, ...updates },
           };
         });
       },

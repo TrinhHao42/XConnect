@@ -44,17 +44,18 @@ export class CallGateway
       const payload = await this.jwtService.verifyAsync(token);
       client.data.user = payload;
 
-      const userId = payload.sub || payload.userId || String(payload.id);
+      const userId = String(payload.sub || payload.userId || payload.id);
 
       // Global room for the user to be callable from anywhere
-      client.join(userId);
+      void client.join(userId);
 
       this.logger.log(
         `Client online for Calls: ${client.id} (User ID: ${userId})`,
       );
-    } catch (error) {
+    } catch (error: unknown) {
+      const err = error as Error;
       this.logger.warn(
-        `Call connection rejected: ${client.id} - ${error.message}`,
+        `Call connection rejected: ${client.id} - ${err.message}`,
       );
       client.disconnect();
     }

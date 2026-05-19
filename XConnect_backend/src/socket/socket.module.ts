@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { SocketGateway } from './socket.gateway';
-import { ChatModule } from '../chat/chat.module';
+import { ChatModule } from '../modules/chat/chat.module';
 import * as fs from 'fs';
 import * as path from 'path';
 

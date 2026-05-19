@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.106.0",
     "@types/dompurify": "^3.2.0",
     "@types/simple-peer": "^9.11.9",
     "agora-rtc-sdk-ng": "^4.24.3",

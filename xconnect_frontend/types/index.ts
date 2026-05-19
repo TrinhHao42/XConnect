@@ -46,6 +46,7 @@ export interface ClientToServerEvents {
   messageSeen: (payload: { messageId: string; conversationId: string }) => void;
   typing: (payload: { conversationId: string }) => void;
   stopTyping: (payload: { conversationId: string }) => void;
+  recallMessage: (payload: { messageId: string; conversationId: string }) => void;
 
   // WebRTC
   callUser: (payload: { userToCallId: string; signalData: any; isVideo: boolean; fromName?: string }) => void;
@@ -63,9 +64,11 @@ export interface ServerToClientEvents {
   userTyping: (payload: { userId: string; conversationId: string }) => void;
   userStoppedTyping: (payload: { userId: string; conversationId: string }) => void;
   updateOnlineUsers: (users: string[]) => void;
+  userProfileUpdated: (data: { userId: string; name?: string; avatar?: string }) => void;
   friendRequestReceived: (data: any) => void;
   friendRequestAccepted: (data: any) => void;
   friendRequestRejected: (data: any) => void;
+  messageRecalled: (payload: { messageId: string; conversationId: string }) => void;
   
   // WebRTC Broadcasts
   incomingCall: (payload: { signal: any; from: string; callerName: string; isVideo: boolean }) => void;

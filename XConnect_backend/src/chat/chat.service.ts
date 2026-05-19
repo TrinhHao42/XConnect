@@ -26,7 +26,7 @@ export class ChatService {
       },
       include: {
         participants: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, avatar: true },
         },
       },
     });
@@ -42,7 +42,7 @@ export class ChatService {
       },
       include: {
         participants: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, avatar: true },
         },
       },
     });
@@ -58,7 +58,7 @@ export class ChatService {
       },
       include: {
         participants: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, avatar: true },
         },
         messages: {
           orderBy: { createdAt: 'desc' },
@@ -87,7 +87,7 @@ export class ChatService {
       },
       include: {
         sender: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, avatar: true },
         },
       },
     });
@@ -116,7 +116,7 @@ export class ChatService {
       orderBy: { createdAt: 'asc' },
       include: {
         sender: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, avatar: true },
         },
       },
     });

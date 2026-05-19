@@ -4,12 +4,13 @@ import {
   Get,
   Param,
   UseGuards,
-  Request,
   Body,
   Put,
+  Req,
 } from '@nestjs/common';
 import { FriendService } from './friend.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import type { AuthRequest } from '../../common/types/auth-request.interface';
 
 @Controller('friend')
 @UseGuards(JwtAuthGuard)
@@ -17,32 +18,60 @@ export class FriendController {
   constructor(private readonly friendService: FriendService) {}
 
   @Post('request/:receiverId')
-  async sendRequest(@Request() req, @Param('receiverId') receiverId: string) {
-    return this.friendService.sendRequest(req.user.userId, receiverId);
+  async sendRequest(
+    @Req() req: AuthRequest,
+    @Param('receiverId') receiverId: string,
+  ) {
+    return this.friendService.sendRequest(
+      String(req.user.sub || req.user.userId),
+      receiverId,
+    );
   }
 
   @Get('requests')
-  async getReceivedRequests(@Request() req) {
-    return this.friendService.getReceivedRequests(req.user.userId);
+  async getReceivedRequests(@Req() req: AuthRequest) {
+    return this.friendService.getReceivedRequests(
+      String(req.user.sub || req.user.userId),
+    );
   }
 
   @Put('accept/:requestId')
-  async acceptRequest(@Request() req, @Param('requestId') requestId: string) {
-    return this.friendService.acceptRequest(requestId, req.user.userId);
+  async acceptRequest(
+    @Req() req: AuthRequest,
+    @Param('requestId') requestId: string,
+  ) {
+    return this.friendService.acceptRequest(
+      requestId,
+      String(req.user.sub || req.user.userId),
+    );
   }
 
   @Put('reject/:requestId')
-  async rejectRequest(@Request() req, @Param('requestId') requestId: string) {
-    return this.friendService.rejectRequest(requestId, req.user.userId);
+  async rejectRequest(
+    @Req() req: AuthRequest,
+    @Param('requestId') requestId: string,
+  ) {
+    return this.friendService.rejectRequest(
+      requestId,
+      String(req.user.sub || req.user.userId),
+    );
   }
 
   @Get('list')
-  async getFriends(@Request() req) {
-    return this.friendService.getFriends(req.user.userId);
+  async getFriends(@Req() req: AuthRequest) {
+    return this.friendService.getFriends(
+      String(req.user.sub || req.user.userId),
+    );
   }
 
   @Get('status/:receiverId')
-  async getStatus(@Request() req, @Param('receiverId') receiverId: string) {
-    return this.friendService.getRelationStatus(req.user.userId, receiverId);
+  async getStatus(
+    @Req() req: AuthRequest,
+    @Param('receiverId') receiverId: string,
+  ) {
+    return this.friendService.getRelationStatus(
+      String(req.user.sub || req.user.userId),
+      receiverId,
+    );
   }
 }

@@ -2,7 +2,7 @@
 
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { IAgoraRTCClient, ILocalAudioTrack, ILocalVideoTrack } from "agora-rtc-sdk-ng";
-import { Loader2, Mic, MicOff, Phone, PhoneOff, Video, VideoOff, X } from "lucide-react";
+import { Loader2, Mic, MicOff, Phone, PhoneOff, Video, VideoOff, X, Volume2, VolumeX, Volume1 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/libs/api";
 import { getSocket } from "@/libs/socket";
@@ -102,6 +102,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<CallSession | null>(null);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
+  const [speakerVolume, setSpeakerVolume] = useState(100);
+  const speakerVolumeRef = useRef(speakerVolume);
+
+  useEffect(() => {
+    speakerVolumeRef.current = speakerVolume;
+  }, [speakerVolume]);
   const sessionRef = useRef<CallSession | null>(null);
   const previousSessionRef = useRef<CallSession | null>(null);
   const clientRef = useRef<IAgoraRTCClient | null>(null);
@@ -148,6 +154,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     await clearAgoraArtifacts();
     setIsMicMuted(false);
     setIsCameraOff(false);
+    setSpeakerVolume(100);
     setSession(null);
   }, [clearAgoraArtifacts]);
 
@@ -162,10 +169,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     try {
       await track.setEnabled(!nextMuted);
       setIsMicMuted(nextMuted);
-      toast.info(nextMuted ? "Đã tắt mic" : "Đã bật mic");
     } catch (error) {
       console.error("Failed to toggle microphone", error);
-      toast.error("Không thể đổi trạng thái mic");
     }
   }, [isMicMuted]);
 
@@ -178,12 +183,45 @@ export function CallProvider({ children }: { children: ReactNode }) {
     try {
       await track.setEnabled(!nextOff);
       setIsCameraOff(nextOff);
-      toast.info(nextOff ? "Đã tắt camera" : "Đã bật camera");
     } catch (error) {
       console.error("Failed to toggle camera", error);
-      toast.error("Không thể đổi trạng thái camera");
     }
   }, [isCameraOff]);
+
+  const adjustVolume = useCallback((amount: number) => {
+    let finalVolume = 100;
+    setSpeakerVolume((prev) => {
+      const nextVolume = Math.min(100, Math.max(0, prev + amount));
+      finalVolume = nextVolume;
+
+      const remoteUser = remoteUserRef.current;
+      if (remoteUser && remoteUser.audioTrack) {
+        try {
+          remoteUser.audioTrack.setVolume(nextVolume);
+        } catch (error) {
+          console.error("Failed to set speaker volume", error);
+        }
+      }
+      return nextVolume;
+    });
+
+    setTimeout(() => {
+      toast.dismiss();
+      if (finalVolume === 0) {
+        toast.info("Đã tắt tiếng loa 🔇");
+      } else {
+        toast.success(`Âm lượng loa: ${finalVolume}% 🔊`);
+      }
+    }, 50);
+  }, []);
+
+  const volumeUp = useCallback(() => {
+    adjustVolume(20);
+  }, [adjustVolume]);
+
+  const volumeDown = useCallback(() => {
+    adjustVolume(-20);
+  }, [adjustVolume]);
 
   useEffect(() => {
     sessionRef.current = session;
@@ -193,7 +231,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     const previousSession = previousSessionRef.current;
 
     if (session?.phase === "active" && previousSession?.phase !== "active") {
-      toast.success(`Cuộc gọi ${getCallTypeLabel(session.isVideo)} đã kết nối thành công`);
+      // Call connected - UI overlay already shows this clearly
     }
 
     previousSessionRef.current = session;
@@ -312,13 +350,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
         }
 
         if (!token) {
-          toast.error("Không lấy được Agora token");
+          console.error("Failed to get Agora token");
           await resetSession();
           return;
         }
 
       if (!appId) {
-        toast.error("Thiếu NEXT_PUBLIC_AGORA_APP_ID cho Agora");
+        console.error("Missing NEXT_PUBLIC_AGORA_APP_ID");
         await resetSession();
         return;
       }
@@ -348,8 +386,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
           remoteUserRef.current = remoteUser;
 
-          if (mediaType === "audio") {
-            remoteUser.audioTrack?.play();
+          if (mediaType === "audio" && remoteUser.audioTrack) {
+            try {
+              remoteUser.audioTrack.setVolume(speakerVolumeRef.current);
+            } catch (err) {
+              console.warn("Failed to set volume on remote track", err);
+            }
+            remoteUser.audioTrack.play();
           }
 
           if (mediaType === "video" && remoteVideoContainerRef.current && remoteUser.videoTrack) {
@@ -376,7 +419,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
         await client.join(appId, currentSession.channelName, token, localUserId);
 
-        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+          AEC: true,  // Acoustic Echo Cancellation (Khử tiếng vọng)
+          ANS: true,  // Automatic Noise Suppression (Chống ồn tự động)
+          AGC: true,  // Automatic Gain Control (Tự động cân bằng âm lượng)
+        });
         localAudioTrackRef.current = audioTrack;
         setIsMicMuted(false);
 
@@ -401,7 +448,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error("Failed to start Agora call", error);
-        toast.error("Không thể khởi tạo cuộc gọi Agora");
         await resetSession();
       }
     };
@@ -525,8 +571,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
         endCall={endCall}
         toggleMic={toggleMic}
         toggleCamera={toggleCamera}
+        volumeUp={volumeUp}
+        volumeDown={volumeDown}
         isMicMuted={isMicMuted}
         isCameraOff={isCameraOff}
+        speakerVolume={speakerVolume}
         localVideoContainerRef={localVideoContainerRef}
         remoteVideoContainerRef={remoteVideoContainerRef}
       />
@@ -541,8 +590,11 @@ function CallOverlay({
   endCall,
   toggleMic,
   toggleCamera,
+  volumeUp,
+  volumeDown,
   isMicMuted,
   isCameraOff,
+  speakerVolume,
   localVideoContainerRef,
   remoteVideoContainerRef,
 }: {
@@ -552,8 +604,11 @@ function CallOverlay({
   endCall: () => Promise<void>;
   toggleMic: () => Promise<void>;
   toggleCamera: () => Promise<void>;
+  volumeUp: () => void;
+  volumeDown: () => void;
   isMicMuted: boolean;
   isCameraOff: boolean;
+  speakerVolume: number;
   localVideoContainerRef: React.RefObject<HTMLDivElement | null>;
   remoteVideoContainerRef: React.RefObject<HTMLDivElement | null>;
 }) {
@@ -649,6 +704,22 @@ function CallOverlay({
                       {isMicMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
                     </button>
                     <button
+                      onClick={volumeDown}
+                      className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-white transition-colors hover:bg-white/10"
+                      type="button"
+                      title="Giảm âm lượng"
+                    >
+                      {speakerVolume === 0 ? <VolumeX className="h-5 w-5 text-red-400" /> : <Volume1 className="h-5 w-5" />}
+                    </button>
+                    <button
+                      onClick={volumeUp}
+                      className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-white transition-colors hover:bg-white/10"
+                      type="button"
+                      title="Tăng âm lượng"
+                    >
+                      <Volume2 className="h-5 w-5" />
+                    </button>
+                    <button
                       onClick={toggleCamera}
                       className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-white transition-colors hover:bg-white/10"
                       type="button"
@@ -685,6 +756,22 @@ function CallOverlay({
                       title={isMicMuted ? "Bật mic" : "Tắt mic"}
                     >
                       {isMicMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                    </button>
+                    <button
+                      onClick={volumeDown}
+                      className="flex h-11 w-11 items-center justify-center rounded-full bg-white/5 text-white transition-colors hover:bg-white/10"
+                      type="button"
+                      title="Giảm âm lượng"
+                    >
+                      {speakerVolume === 0 ? <VolumeX className="h-5 w-5 text-red-400" /> : <Volume1 className="h-5 w-5" />}
+                    </button>
+                    <button
+                      onClick={volumeUp}
+                      className="flex h-11 w-11 items-center justify-center rounded-full bg-white/5 text-white transition-colors hover:bg-white/10"
+                      type="button"
+                      title="Tăng âm lượng"
+                    >
+                      <Volume2 className="h-5 w-5" />
                     </button>
                     <button
                       onClick={endCall}

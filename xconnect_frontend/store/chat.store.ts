@@ -19,11 +19,14 @@ interface ChatState {
   setTyping: (roomId: string, userId: string) => void;
   removeTyping: (roomId: string, userId: string) => void;
   setOnlineUsers: (users: string[]) => void;
+  updateParticipantProfile: (userId: string, updates: { name?: string; avatar?: string }) => void;
   
   // High-performance Dedup functionality
   addMessage: (msg: Message) => void;
   // Optimistic ID flip
   updateMessageStatus: (roomId: string, tempId: string, serverId: string, status: MessageStatus) => void;
+  updateMessageContent: (roomId: string, messageId: string, content: string) => void;
+  deleteMessage: (roomId: string, messageId: string) => void;
 }
 
 export const useChatStore = create<ChatState>()((set) => ({
@@ -36,6 +39,15 @@ export const useChatStore = create<ChatState>()((set) => ({
   setActiveRoom: (id) => set({ activeRoomId: id }),
   setConversations: (conversations) => set({ conversations }),
   setOnlineUsers: (users) => set({ onlineUsers: users }),
+
+  updateParticipantProfile: (userId, updates) => set((state) => ({
+    conversations: (state.conversations as any[]).map((conv: any) => ({
+      ...conv,
+      participants: (conv.participants || []).map((p: any) =>
+        p.id === userId ? { ...p, ...updates } : p
+      ),
+    })),
+  })),
   
   setTyping: (roomId, userId) => set((state) => {
     const current = state.typingUsers[roomId] || [];
@@ -60,20 +72,48 @@ export const useChatStore = create<ChatState>()((set) => ({
 
   addMessage: (msg: Message) => set((state) => {
     const room = state.messagesByRoom[msg.roomId] || { messages: [], hasMore: false };
-    const exists = room.messages.some(m => m.id === msg.id);
+    const existingIndex = room.messages.findIndex(m => m.id === msg.id);
 
-    if (!exists) {
-      return {
-        messagesByRoom: {
-          ...state.messagesByRoom,
-          [msg.roomId]: {
-            ...room,
-            messages: [...room.messages, msg] 
-          }
-        }
-      };
+    let nextMessages = room.messages;
+    if (existingIndex > -1) {
+      const existing = room.messages[existingIndex];
+      // If it exists but is in uploading/sending status, update its content & status to final
+      if (existing.content.startsWith('uploading-') || existing.status === 'sending') {
+        const updatedMessages = [...room.messages];
+        updatedMessages[existingIndex] = {
+          ...existing,
+          content: msg.content,
+          type: msg.type,
+          status: msg.status,
+        };
+        nextMessages = updatedMessages;
+      }
+    } else {
+      nextMessages = [...room.messages, msg];
     }
-    return state;
+
+    // Đồng bộ tin nhắn cuối cùng vào danh sách cuộc trò chuyện ở Sidebar
+    const updatedConversations = state.conversations.map((conv: any) => {
+      if (conv.id === msg.roomId) {
+        return {
+          ...conv,
+          messages: [{ content: msg.content, createdAt: new Date(msg.createdAt).toISOString() }],
+          updatedAt: new Date(msg.createdAt).toISOString(),
+        };
+      }
+      return conv;
+    });
+
+    return {
+      messagesByRoom: {
+        ...state.messagesByRoom,
+        [msg.roomId]: {
+          ...room,
+          messages: nextMessages
+        }
+      },
+      conversations: updatedConversations
+    };
   }),
 
   updateMessageStatus: (roomId, tempId, serverId, status) => set((state) => {
@@ -86,10 +126,58 @@ export const useChatStore = create<ChatState>()((set) => ({
         [roomId]: {
           ...room,
           messages: room.messages.map(m => 
-            m.id === tempId ? { ...m, id: serverId, status: status } : m
+             m.id === tempId ? { ...m, id: serverId, status: status } : m
           )
         }
       }
+    };
+  }),
+
+  updateMessageContent: (roomId, messageId, content) => set((state) => {
+    const room = state.messagesByRoom[roomId];
+    if (!room) return state;
+
+    return {
+      messagesByRoom: {
+        ...state.messagesByRoom,
+        [roomId]: {
+          ...room,
+          messages: room.messages.map(m => 
+            m.id === messageId ? { ...m, content } : m
+          )
+        }
+      }
+    };
+  }),
+
+  deleteMessage: (roomId, messageId) => set((state) => {
+    const room = state.messagesByRoom[roomId];
+    if (!room) return state;
+
+    const nextMessages = room.messages.filter(m => m.id !== messageId);
+
+    // Đồng bộ tin nhắn cuối cùng khi tin nhắn bị xóa / thu hồi ở Sidebar
+    const updatedConversations = state.conversations.map((conv: any) => {
+      if (conv.id === roomId) {
+        const lastMsg = nextMessages[nextMessages.length - 1];
+        return {
+          ...conv,
+          messages: lastMsg ? [{ content: lastMsg.content, createdAt: new Date(lastMsg.createdAt).toISOString() }] : [],
+          updatedAt: lastMsg ? new Date(lastMsg.createdAt).toISOString() : conv.updatedAt,
+        };
+      }
+      return conv;
+    });
+
+    return {
+      messagesByRoom: {
+        ...state.messagesByRoom,
+        [roomId]: {
+          ...room,
+          messages: nextMessages
+        }
+      },
+      conversations: updatedConversations
     };
   })
 }));

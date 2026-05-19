@@ -3,6 +3,7 @@ import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { JwtModule } from '@nestjs/jwt';
+import { SocketModule } from '../../socket/socket.module';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -18,6 +19,7 @@ const publicKey = fs.readFileSync(
       publicKey,
       verifyOptions: { algorithms: ['RS256'] },
     }),
+    SocketModule,
   ],
   controllers: [UsersController],
   providers: [UsersService],

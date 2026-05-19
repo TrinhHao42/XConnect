@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getSocket } from '../libs/socket';
 import { useAuthStore } from '../store/auth.store';
 import { useChatStore } from '../store/chat.store';
@@ -13,103 +13,135 @@ export const useSocket = () => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // Only connect if user is authenticated
-    if (isAuthenticated) {
-      socket.connect();
+    if (!isAuthenticated) return;
 
-      socket.on("connect", () => {
-        console.log("Socket connected:", socket.id);
-        setIsConnected(true);
-        toast.success("Connected to chat server", { id: "socket-conn" });
-        
-        // Smarter Reconnect Resiliency: Rejoin active rooms silently
-        const { activeRoomId } = useChatStore.getState();
-        if (activeRoomId) {
-          socket.emit("joinRoom", { conversationId: activeRoomId });
-        }
+    socket.connect();
+
+    // --- Named handlers (required for proper per-handler cleanup) ---
+    const onConnect = () => {
+      console.log("Socket connected:", socket.id);
+      setIsConnected(true);
+      // Smarter Reconnect Resiliency: Rejoin active rooms silently
+      const { activeRoomId } = useChatStore.getState();
+      if (activeRoomId) {
+        socket.emit("joinRoom", { conversationId: activeRoomId });
+      }
+    };
+
+    const onDisconnect = (reason: string) => {
+      console.warn("Socket disconnected:", reason);
+      setIsConnected(false);
+    };
+
+    const onConnectError = (error: Error) => {
+      console.error("Socket connection error:", error);
+    };
+
+    const onNewMessage = (data: any) => {
+      const roomId = data.roomId || data.conversationId;
+      if (!roomId || !data.id) return;
+      useChatStore.getState().addMessage({
+        id: data.id,
+        content: data.content || "",
+        type: data.type || (
+          typeof data.content === "string" && (data.content.startsWith("data:image/") || data.content.startsWith("uploading-image:"))
+            ? "image"
+            : typeof data.content === "string" && (data.content.startsWith("file:") || data.content.startsWith("uploading-file:"))
+              ? "file"
+              : "text"
+        ),
+        senderId: data.senderId,
+        roomId,
+        createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
+        status: "sent",
       });
+    };
 
-      socket.on("disconnect", (reason) => {
-        console.warn("Socket disconnected:", reason);
-        setIsConnected(false);
-        toast.error(`Disconnected: ${reason}`, { id: "socket-conn" });
+    const onMessageStatusUpdate = ({ messageId, tempId, status, conversationId }: any) => {
+      const { activeRoomId } = useChatStore.getState();
+      const roomId = conversationId || activeRoomId;
+      if (roomId && tempId) {
+        useChatStore.getState().updateMessageStatus(roomId, tempId, messageId, status);
+      }
+    };
+
+    const onMessageRecalled = ({ messageId, conversationId }: any) => {
+      const { activeRoomId } = useChatStore.getState();
+      const roomId = conversationId || activeRoomId;
+      if (roomId && messageId) {
+        useChatStore.getState().deleteMessage(roomId, messageId);
+      }
+    };
+
+    const onUserTyping = ({ conversationId, userId }: any) => {
+      useChatStore.getState().setTyping(conversationId, userId);
+    };
+
+    const onUserStoppedTyping = ({ conversationId, userId }: any) => {
+      useChatStore.getState().removeTyping(conversationId, userId);
+    };
+
+    const onUpdateOnlineUsers = (users: string[]) => {
+      useChatStore.getState().setOnlineUsers(users);
+    };
+
+    const onUserProfileUpdated = (data: { userId: string; name?: string; avatar?: string }) => {
+      useChatStore.getState().updateParticipantProfile(data.userId, {
+        name: data.name,
+        avatar: data.avatar,
       });
+    };
 
-      socket.on("connect_error", (error) => {
-        console.error("Socket connection error:", error);
-        toast.error("Connection error, retrying...", { id: "socket-conn" });
+    const onFriendRequestReceived = (data: any) => {
+      useFriendStore.getState().addRequest(data);
+      toast.info(`You received a friend request from ${data.sender.name || data.sender.email}`, {
+        description: "Go to Contacts to view details",
+        action: {
+          label: "View",
+          onClick: () => (window.location.href = "/contacts"),
+        },
       });
+    };
 
-      // Map backend payload shape to frontend Message shape
-      socket.on("newMessage", (data: any) => {
-        const roomId = data.roomId || data.conversationId;
-        if (!roomId || !data.id) return;
+    const onFriendRequestAccepted = (data: any) => {
+      useAuthStore.getState().addFriendId(data.receiverId);
+      toast.success(`${data.receiver.name || data.receiver.email} accepted your friend request!`);
+    };
 
-        useChatStore.getState().addMessage({
-          id: data.id,
-          content: data.content || "",
-          type: data.type || (typeof data.content === "string" && data.content.startsWith("data:image/") ? "image" : "text"),
-          senderId: data.senderId,
-          roomId,
-          createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
-          status: "sent",
-        });
-      });
+    const onFriendRequestRejected = (data: any) => {
+      toast.error(`${data.receiver.name || data.receiver.email} declined your friend request.`);
+    };
 
-      socket.on("messageStatusUpdate", ({ messageId, tempId, status, conversationId }: any) => {
-        const { activeRoomId } = useChatStore.getState();
-        const roomId = conversationId || activeRoomId;
-        if (roomId && tempId) {
-          useChatStore.getState().updateMessageStatus(roomId, tempId, messageId, status);
-        }
-      });
-      
-      socket.on("userTyping", ({ conversationId, userId }: any) => {
-        console.log("Socket: userTyping received", { conversationId, userId });
-        useChatStore.getState().setTyping(conversationId, userId);
-      });
+    // --- Register all handlers ---
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("connect_error", onConnectError);
+    socket.on("newMessage", onNewMessage);
+    socket.on("messageStatusUpdate", onMessageStatusUpdate);
+    socket.on("userTyping", onUserTyping);
+    socket.on("userStoppedTyping", onUserStoppedTyping);
+    socket.on("updateOnlineUsers", onUpdateOnlineUsers);
+    socket.on("userProfileUpdated", onUserProfileUpdated);
+    socket.on("friendRequestReceived", onFriendRequestReceived);
+    socket.on("friendRequestAccepted", onFriendRequestAccepted);
+    socket.on("friendRequestRejected", onFriendRequestRejected);
+    socket.on("messageRecalled", onMessageRecalled);
 
-      socket.on("userStoppedTyping", ({ conversationId, userId }: any) => {
-        console.log("Socket: userStoppedTyping received", { conversationId, userId });
-        useChatStore.getState().removeTyping(conversationId, userId);
-      });
-
-      socket.on("updateOnlineUsers", (users: string[]) => {
-        console.log("Socket: updateOnlineUsers", users);
-        useChatStore.getState().setOnlineUsers(users);
-      });
-
-      socket.on("friendRequestReceived", (data: any) => {
-        const { addRequest } = useFriendStore.getState();
-        addRequest(data);
-        toast.info(`Bạn nhận được lời mời kết bạn từ ${data.sender.name || data.sender.email}`, {
-          description: "Vào mục Contacts để xem chi tiết",
-          action: {
-            label: "Xem",
-            onClick: () => (window.location.href = "/contacts"),
-          },
-        });
-      });
-
-      socket.on("friendRequestAccepted", (data: any) => {
-        const { addFriendId } = useAuthStore.getState();
-        addFriendId(data.receiverId); // or data.receiver.id
-        toast.success(`${data.receiver.name || data.receiver.email} đã chấp nhận lời mời kết bạn của bạn!`);
-      });
-
-      socket.on("friendRequestRejected", (data: any) => {
-        toast.error(`${data.receiver.name || data.receiver.email} đã từ chối lời mời kết bạn.`);
-      });
-    }
-
+    // --- Cleanup: remove EXACT handlers to prevent duplicates on re-render ---
     return () => {
-      // Clean up connection gracefully on unmount or auth loss
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off("newMessage");
-      socket.off("messageStatusUpdate");
-      // Not calling disconnect() here entirely so active connections remain across Next.js soft-navigations,
-      // but if the user entirely logs out, the logout function will explicitly call disconnectSocket().
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("connect_error", onConnectError);
+      socket.off("newMessage", onNewMessage);
+      socket.off("messageStatusUpdate", onMessageStatusUpdate);
+      socket.off("userTyping", onUserTyping);
+      socket.off("userStoppedTyping", onUserStoppedTyping);
+      socket.off("updateOnlineUsers", onUpdateOnlineUsers);
+      socket.off("userProfileUpdated", onUserProfileUpdated);
+      socket.off("friendRequestReceived", onFriendRequestReceived);
+      socket.off("friendRequestAccepted", onFriendRequestAccepted);
+      socket.off("friendRequestRejected", onFriendRequestRejected);
+      socket.off("messageRecalled", onMessageRecalled);
     };
   }, [isAuthenticated, socket]);
 

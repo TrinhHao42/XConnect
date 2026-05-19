@@ -11,7 +11,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ChatService } from '../chat/chat.service';
+import { ChatService } from '../modules/chat/chat.service';
 
 @WebSocketGateway({
   namespace: 'chat',
@@ -38,7 +38,7 @@ export class SocketGateway
     this.logger.log('Socket initialized');
   }
 
-  private broadcastOnlineUsers() {
+  private broadcastOnlineUsers(): void {
     const onlineUsers = Array.from(this.userSockets.keys());
     this.server.emit('updateOnlineUsers', onlineUsers);
   }
@@ -59,13 +59,13 @@ export class SocketGateway
 
       // Lưu thông tin user vào socket data để các event khác xài
       client.data.user = payload;
-      this.userSockets.set(payload.sub, client.id);
+      this.userSockets.set(String(payload.sub), client.id);
 
       this.logger.log(
-        `Client connected & authenticated: ${client.id} (User ID: ${payload.sub})`,
+        `Client connected & authenticated: ${client.id} (User ID: ${String(payload.sub)})`,
       );
 
-      this.broadcastOnlineUsers();
+      void this.broadcastOnlineUsers();
     } catch (error) {
       this.logger.warn(
         `Client connection rejected: ${client.id} - Reason: ${error.message}`,
@@ -76,10 +76,10 @@ export class SocketGateway
 
   handleDisconnect(client: Socket) {
     if (client.data.user) {
-      this.userSockets.delete(client.data.user.sub);
+      this.userSockets.delete(String(client.data.user.sub));
     }
     this.logger.log(`Client disconnected: ${client.id}`);
-    this.broadcastOnlineUsers();
+    void this.broadcastOnlineUsers();
   }
 
   @SubscribeMessage('pingServer')
@@ -123,7 +123,7 @@ export class SocketGateway
       // Lưu vào Database
       const message = await this.chatService.saveMessage(
         conversationId,
-        user.sub,
+        String(user.sub),
         content,
       );
 
@@ -141,8 +141,9 @@ export class SocketGateway
       client
         .to(conversationId)
         .emit('newMessage', tempId ? { ...message, tempId } : message);
-    } catch (e) {
-      this.logger.error(`Error sending message: ${e.message}`);
+    } catch (e: unknown) {
+      const err = e as Error;
+      this.logger.error(`Error sending message: ${err.message}`);
       client.emit('error', { message: 'Cannot send message' });
     }
   }
@@ -189,5 +190,14 @@ export class SocketGateway
       return true;
     }
     return false;
+  }
+
+  // Broadcast profile update (avatar/name) to ALL connected clients
+  broadcastProfileUpdate(
+    userId: string,
+    profile: { id: string; name?: string; avatar?: string },
+  ) {
+    this.server.emit('userProfileUpdated', { userId, ...profile });
+    this.logger.log(`Broadcasted profile update for user ${userId}`);
   }
 }
