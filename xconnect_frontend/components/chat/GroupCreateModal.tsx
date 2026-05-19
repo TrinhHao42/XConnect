@@ -100,50 +100,49 @@ export default function GroupCreateModal({ isOpen, onClose }: GroupCreateModalPr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-4">
-      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-white/10 bg-slate-950 shadow-2xl shadow-black/40">
-        <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-950 shadow-2xl shadow-black/10 dark:shadow-black/40">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 px-6 py-5">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">New Group</p>
-            <h2 className="mt-2 text-2xl font-bold text-white">Tạo nhóm chat</h2>
-            <p className="mt-1 text-sm text-slate-400">Chọn ít nhất 2 bạn bè để tạo nhóm mới</p>
+            <h2 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Tạo nhóm chat</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Chọn ít nhất 2 bạn bè để tạo nhóm mới</p>
           </div>
-          <button onClick={onClose} className="rounded-full bg-white/5 p-2 text-slate-300 transition-colors hover:bg-white/10">
+          <button onClick={onClose} className="rounded-full bg-slate-100 dark:bg-white/5 p-2 text-slate-600 dark:text-slate-300 transition-colors hover:bg-slate-200 dark:hover:bg-white/10">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="border-b border-white/10 px-6 py-5">
+        <div className="border-b border-slate-200 dark:border-white/10 px-6 py-5">
           <label className="block">
-            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Tên nhóm</span>
+            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">Tên nhóm</span>
             <input
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
               placeholder="Ví dụ: Team XConnect"
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400/40 focus:bg-white/10"
+              className="w-full rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-4 py-3 text-sm text-slate-900 dark:text-white outline-none transition focus:border-cyan-500/40 dark:focus:border-cyan-400/40 focus:bg-slate-100 dark:focus:bg-white/10"
             />
           </label>
         </div>
 
         <div className="px-6 pb-4 pt-5">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm bạn bè để thêm vào nhóm..."
-              className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-white outline-none transition focus:border-cyan-400/40 focus:bg-white/10"
+              className="w-full rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 py-3 pl-11 pr-4 text-sm text-slate-900 dark:text-white outline-none transition focus:border-cyan-500/40 dark:focus:border-cyan-400/40 focus:bg-slate-100 dark:focus:bg-white/10"
             />
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 pb-4">
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-slate-400">
+            <div className="flex items-center justify-center py-16 text-slate-500 dark:text-slate-400">
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : filteredFriends.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400">
-              <p className="text-lg font-semibold text-white">Không có bạn bè phù hợp</p>
+            <div className="flex flex-col items-center justify-center py-16 text-center text-slate-500 dark:text-slate-400">
+              <p className="text-lg font-semibold text-slate-900 dark:text-white">Không có bạn bè phù hợp</p>
               <p className="mt-1 text-sm">Thử tìm tên hoặc email khác</p>
             </div>
           ) : (
@@ -155,19 +154,19 @@ export default function GroupCreateModal({ isOpen, onClose }: GroupCreateModalPr
                     key={friend.id}
                     type="button"
                     onClick={() => toggleFriend(friend.id)}
-                    className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors ${isSelected ? "border-cyan-400/40 bg-cyan-500/10" : "border-white/10 bg-white/5 hover:bg-white/10"
+                    className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors ${isSelected ? "border-cyan-500 bg-cyan-500/10 dark:border-cyan-400/40 dark:bg-cyan-500/10" : "border-slate-200 bg-slate-50 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
                       }`}
                   >
                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-indigo-500 to-cyan-500 text-sm font-bold text-white">
                       {(friend.name || friend.email || "?")[0]?.toUpperCase() || "?"}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-white">{friend.name || friend.email}</p>
-                      <p className="truncate text-xs text-slate-400">{friend.email}</p>
+                      <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{friend.name || friend.email}</p>
+                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">{friend.email}</p>
                     </div>
-                    <div className={`flex h-6 w-6 items-center justify-center rounded-full border ${isSelected ? "border-cyan-400 bg-cyan-400" : "border-slate-500"
+                    <div className={`flex h-6 w-6 items-center justify-center rounded-full border ${isSelected ? "border-cyan-500 bg-cyan-500 text-white" : "border-slate-300 dark:border-slate-500"
                       }`}>
-                      {isSelected && <Plus className="h-3.5 w-3.5 text-slate-950" />}
+                      {isSelected && <Plus className="h-3.5 w-3.5 text-white dark:text-slate-950" />}
                     </div>
                   </button>
                 );
@@ -176,10 +175,10 @@ export default function GroupCreateModal({ isOpen, onClose }: GroupCreateModalPr
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-white/10 bg-black/20 px-6 py-4">
+        <div className="flex items-center justify-end gap-3 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 px-6 py-4">
           <button
             onClick={onClose}
-            className="rounded-full px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+            className="rounded-full px-5 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-white/5 dark:hover:text-white"
           >
             Hủy
           </button>
