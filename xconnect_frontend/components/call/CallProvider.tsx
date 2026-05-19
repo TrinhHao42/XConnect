@@ -673,11 +673,11 @@ function CallOverlay({
               <div className="relative flex-1 overflow-hidden rounded-[28px] border border-white/10 bg-slate-900 shadow-2xl shadow-black/40">
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800" />
 
-                {/* Remote Video Container: Always render in DOM so ref is never null when Agora's user-published event triggers */}
+                {/* Remote Video Container: Always render in DOM with display block to prevent mobile browsers from suspending hidden videos */}
                 <div
                   ref={remoteVideoContainerRef}
-                  className={`absolute inset-0 [&>video]:h-full [&>video]:w-full [&>video]:object-cover ${
-                    isOutgoing || isConnecting ? "hidden" : ""
+                  className={`absolute inset-0 [&>video]:h-full [&>video]:w-full [&>video]:object-cover transition-opacity duration-350 ${
+                    isOutgoing || isConnecting ? "opacity-0 pointer-events-none" : "opacity-100"
                   }`}
                 />
 

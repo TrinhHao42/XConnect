@@ -488,20 +488,20 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
   return (
     <div className="flex-1 flex h-full overflow-hidden relative">
       <section className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 relative h-full overflow-hidden border-r border-slate-200 dark:border-slate-800">
-        <header className="sticky top-0 w-full z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex justify-between items-center px-6 py-3 border-b border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-4">
+        <header className="sticky top-0 w-full z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex justify-between items-center px-4 sm:px-6 py-3 border-b border-slate-200 dark:border-slate-800 shadow-sm min-w-0">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             {/* Nút Back - chỉ hiện trên mobile */}
             {onBack && (
               <button
                 onClick={onBack}
-                className="md:hidden p-2 -ml-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors"
+                className="md:hidden p-2 -ml-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors shrink-0"
                 title="Back"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
-            <div className="flex items-center gap-3">
-              <div className="relative">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className="relative shrink-0">
                 <div className="w-10 h-10 rounded-full bg-linear-to-tr from-indigo-500 to-blue-600 text-white flex items-center justify-center font-bold overflow-hidden">
                   {!isGroupConversation && (otherParticipant?.avatar || !otherParticipant) ? (
                     <img src={otherParticipant?.avatar || "/mydocument.png"} alt="Avatar" className="w-full h-full object-cover" />
@@ -511,15 +511,17 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
                 </div>
                 <span className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white dark:border-slate-950 rounded-full ${isOtherOnline ? "bg-emerald-500" : "bg-slate-400"}`} />
               </div>
-              <div>
-                <h2 className="font-sans text-lg font-semibold leading-tight text-on-surface text-slate-700 dark:text-slate-200">{chatTitle}</h2>
-                <p className={`text-xs font-medium ${isOtherOnline ? "text-emerald-600" : "text-slate-400"}`}>
+              <div className="min-w-0 flex-1">
+                <h2 className="font-sans text-base sm:text-lg font-semibold leading-tight text-on-surface text-slate-700 dark:text-slate-200 truncate max-w-[110px] min-[390px]:max-w-[160px] sm:max-w-none" title={chatTitle}>
+                  {chatTitle}
+                </h2>
+                <p className={`text-xs font-medium truncate ${isOtherOnline ? "text-emerald-600" : "text-slate-400"}`}>
                   {isGroupConversation ? `${activeConv?.participants?.length || 0} ${t.members}` : isOtherOnline ? t.activeNow : t.offline}
                 </p>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             {!isGroupConversation && (
               <>
                 <button
