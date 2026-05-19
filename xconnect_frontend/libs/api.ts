@@ -1,6 +1,6 @@
 // Centralized API helper — injects token automatically from auth store
-// All requests go through Next.js rewrites (/api/*) to avoid CORS
-const API_URL = "/api";
+// Configured with absolute URL to support Capacitor mobile app static export
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -42,7 +42,9 @@ async function apiFetch<T>(
         if (typeof window !== "undefined") {
           const { useAuthStore } = require("../store/auth.store");
           useAuthStore.getState().logout();
-          window.location.href = "/login";
+          if (window.location.pathname !== "/login") {
+            window.location.pathname = "/login";
+          }
         }
       }
     } catch (e) {
