@@ -19,6 +19,7 @@ interface ChatState {
   setTyping: (roomId: string, userId: string) => void;
   removeTyping: (roomId: string, userId: string) => void;
   setOnlineUsers: (users: string[]) => void;
+  updateParticipantProfile: (userId: string, updates: { name?: string; avatar?: string }) => void;
   
   // High-performance Dedup functionality
   addMessage: (msg: Message) => void;
@@ -36,6 +37,15 @@ export const useChatStore = create<ChatState>()((set) => ({
   setActiveRoom: (id) => set({ activeRoomId: id }),
   setConversations: (conversations) => set({ conversations }),
   setOnlineUsers: (users) => set({ onlineUsers: users }),
+
+  updateParticipantProfile: (userId, updates) => set((state) => ({
+    conversations: (state.conversations as any[]).map((conv: any) => ({
+      ...conv,
+      participants: (conv.participants || []).map((p: any) =>
+        p.id === userId ? { ...p, ...updates } : p
+      ),
+    })),
+  })),
   
   setTyping: (roomId, userId) => set((state) => {
     const current = state.typingUsers[roomId] || [];

@@ -4,15 +4,34 @@ import Link from "next/link";
 import { MessageSquare, Contact, Settings, HelpCircle } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { usePathname } from "next/navigation";
+import { useLanguageStore } from "@/store/language.store";
+
+const translations = {
+  en: {
+    chats: "Chats",
+    contacts: "Contacts",
+    settings: "Settings",
+    help: "Help"
+  },
+  vi: {
+    chats: "Tin nhắn",
+    contacts: "Danh bạ",
+    settings: "Cài đặt",
+    help: "Trợ giúp"
+  }
+};
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuthStore();
+  const { language } = useLanguageStore();
+  
+  const t = translations[language];
 
   const navLinks = [
-    { name: "Chats", href: "/chat", icon: MessageSquare },
-    { name: "Contacts", href: "/contacts", icon: Contact },
-    { name: "Settings", href: "/settings", icon: Settings },
+    { id: "chat", name: t.chats, href: "/chat", icon: MessageSquare },
+    { id: "contacts", name: t.contacts, href: "/contacts", icon: Contact },
+    { id: "settings", name: t.settings, href: "/settings", icon: Settings },
   ];
 
   return (
@@ -20,8 +39,12 @@ export default function Sidebar() {
       {/* User Avatar Top */}
       <div className="px-2 mb-8 flex justify-center">
         <div className="relative">
-          <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg uppercase shadow-lg shadow-blue-500/20">
-            {user?.name?.[0] || "U"}
+          <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg uppercase shadow-lg shadow-blue-500/20 overflow-hidden">
+            {user?.avatar ? (
+              <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              user?.name?.[0] || "U"
+            )}
           </div>
         </div>
       </div>
@@ -51,7 +74,7 @@ export default function Sidebar() {
 
       <div className="mt-auto px-2">
         <button
-          title="Help"
+          title={t.help}
           className="flex w-full items-center justify-center py-3 px-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors duration-200 rounded-xl"
         >
           <HelpCircle className="w-5 h-5" />

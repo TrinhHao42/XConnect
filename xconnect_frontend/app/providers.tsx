@@ -4,8 +4,13 @@ import { ThemeProvider } from "next-themes";
 import { ReactNode, useEffect } from "react";
 import { toast } from "sonner";
 import { CallProvider } from "@/components/call";
+import { useLanguageStore } from "@/store/language.store";
 
 export function Providers({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    useLanguageStore.getState().initialize();
+  }, []);
+
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
