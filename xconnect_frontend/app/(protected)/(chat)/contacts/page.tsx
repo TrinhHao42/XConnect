@@ -174,7 +174,7 @@ export default function ContactsPage() {
   return (
     <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 h-full overflow-hidden">
       {/* Header */}
-      <div className="px-8 pt-8 pb-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="px-4 md:px-8 pt-8 pb-4 border-b border-slate-200 dark:border-slate-800">
         {/* Search bar */}
         <div className="relative mt-5">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -189,7 +189,7 @@ export default function ContactsPage() {
       </div>
 
       {/* Results */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6 pb-24 md:pb-6">
         {/* Friend Requests Section */}
         {requests && requests.length > 0 && (
           <div className="mb-8">

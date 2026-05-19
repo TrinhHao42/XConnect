@@ -13,7 +13,7 @@ export default function ChatPage() {
       <div
         className={`
           ${activeRoomId ? "hidden md:flex" : "flex"}
-          w-full md:w-80 lg:w-96 shrink-0
+          w-full md:w-80 lg:w-96 shrink-0 pb-16 md:pb-0
         `}
       >
         <ConversationList />

@@ -138,11 +138,11 @@ export default function SettingsPage() {
     <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 h-full">
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="w-full px-12 py-12 space-y-8">
+        <div className="w-full px-4 py-6 md:px-12 md:py-12 pb-24 md:pb-12 space-y-8">
           {/* Profile & Preferences in 2 column grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Profile Card - Compact */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-8 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 sm:p-8 shadow-sm">
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
                 <User className="w-6 h-6 text-blue-500" />
                 {t.profile}
@@ -216,7 +216,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Preferences Card */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-8 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 sm:p-8 shadow-sm">
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
                 <Globe className="w-6 h-6 text-purple-500" />
                 {t.preferences}
@@ -227,7 +227,7 @@ export default function SettingsPage() {
                 <label className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 block">
                   {t.language}
                 </label>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   {[
                     { code: "en" as const, label: "EN", flag: "English" },
                     { code: "vi" as const, label: "VI", flag: "Việt Nam" },
