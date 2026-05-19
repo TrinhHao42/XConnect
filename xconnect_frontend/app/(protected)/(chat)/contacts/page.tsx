@@ -267,10 +267,10 @@ export default function ContactsPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-slate-900 dark:text-white truncate">{friend.name || t.noName}</p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm text-slate-400 truncate">{friend.email}</p>
-                            <span className="w-1 h-1 rounded-full bg-slate-300" />
-                            <p className={`text-[11px] font-medium ${isOnline ? "text-emerald-500" : "text-slate-400"}`}>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <p className="text-sm text-slate-400 truncate flex-1 min-w-0">{friend.email}</p>
+                            <span className="w-1 h-1 rounded-full bg-slate-300 shrink-0" />
+                            <p className={`text-[11px] font-medium shrink-0 ${isOnline ? "text-emerald-500" : "text-slate-400"}`}>
                               {isOnline ? t.online : t.offline}
                             </p>
                           </div>
@@ -279,14 +279,14 @@ export default function ContactsPage() {
                         <button
                           onClick={() => handleStartChat(friend.id)}
                           disabled={startingChat === friend.id}
-                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-all disabled:opacity-60 shadow-md shadow-blue-500/20"
+                          className="flex items-center justify-center p-3 sm:px-4 sm:py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-all disabled:opacity-60 shadow-md shadow-blue-500/20 shrink-0"
                         >
                           {startingChat === friend.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
                             <MessageSquare className="w-4 h-4" />
                           )}
-                          {t.message}
+                          <span className="hidden sm:inline ml-2">{t.message}</span>
                         </button>
                       </div>
                     );
@@ -338,14 +338,14 @@ export default function ContactsPage() {
                 </div>
 
                 {/* Action */}
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   {!isFriend && (
                     <button
                       onClick={(e) => handleAddFriend(u.id, e)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-sm font-semibold transition-all shadow-sm"
+                      className="flex items-center justify-center p-3 sm:px-4 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-sm font-semibold transition-all shadow-sm shrink-0"
                     >
                       <UserPlus className="w-4 h-4" />
-                      {t.addFriend}
+                      <span className="hidden sm:inline ml-2">{t.addFriend}</span>
                     </button>
                   )}
                   <button
@@ -354,14 +354,14 @@ export default function ContactsPage() {
                       handleStartChat(u.id);
                     }}
                     disabled={startingChat === u.id}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-all disabled:opacity-60 shadow-md shadow-blue-500/20"
+                    className="flex items-center justify-center p-3 sm:px-4 sm:py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-all disabled:opacity-60 shadow-md shadow-blue-500/20 shrink-0"
                   >
                     {startingChat === u.id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <MessageSquare className="w-4 h-4" />
                     )}
-                    {t.message}
+                    <span className="hidden sm:inline ml-2">{t.message}</span>
                   </button>
                 </div>
               </div>
