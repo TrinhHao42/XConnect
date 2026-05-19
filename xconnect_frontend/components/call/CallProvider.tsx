@@ -204,15 +204,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
       }
       return nextVolume;
     });
-
-    setTimeout(() => {
-      toast.dismiss();
-      if (finalVolume === 0) {
-        toast.info("Đã tắt tiếng loa 🔇");
-      } else {
-        toast.success(`Âm lượng loa: ${finalVolume}% 🔊`);
-      }
-    }, 50);
   }, []);
 
   const volumeUp = useCallback(() => {
@@ -278,8 +269,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
         peerId: payload.from,
         peerName: fromName,
       });
-
-      toast.info(`${fromName} đang gọi ${payload.isVideo ? "video" : "audio"}...`);
     };
 
     const handleCallAccepted = (payload: { signal: CallSignalData; from: string }) => {
@@ -294,12 +283,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const currentSession = sessionRef.current;
       if (!currentSession || currentSession.peerId !== payload.from) return;
 
-      const callType = getCallTypeLabel(currentSession.isVideo);
-      toast.error(
-        payload.reason === "busy"
-          ? `Gọi ${callType} không thành công: người kia đang bận`
-          : `Gọi ${callType} không thành công: bị từ chối`,
-      );
       void resetSession();
     };
 
@@ -307,7 +290,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const currentSession = sessionRef.current;
       if (!currentSession || currentSession.peerId !== payload.from) return;
 
-      toast.info(`Cuộc gọi ${getCallTypeLabel(currentSession.isVideo)} đã kết thúc`);
       void resetSession();
     };
 
@@ -503,7 +485,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
 
     setSession(newSession);
-    toast.info(`Đang gọi ${isVideo ? "video" : "audio"}...`);
     socket.emit("callUser", {
       userToCallId: peer.id,
       signalData: { callId, channelName },
@@ -708,7 +689,11 @@ function CallOverlay({
                   <div className="flex items-center gap-3 rounded-full border border-white/10 bg-black/45 px-4 py-3 shadow-2xl shadow-black/30 backdrop-blur-md">
                     <button
                       onClick={toggleMic}
-                      className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-white transition-colors hover:bg-white/10"
+                      className={`flex h-12 w-12 items-center justify-center rounded-full transition-colors ${
+                        !isMicMuted
+                          ? "bg-white text-black hover:bg-white/90"
+                          : "bg-white/5 text-white hover:bg-white/10"
+                      }`}
                       type="button"
                       title={isMicMuted ? "Bật mic" : "Tắt mic"}
                     >
@@ -724,7 +709,11 @@ function CallOverlay({
                     </button>
                     <button
                       onClick={volumeUp}
-                      className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-white transition-colors hover:bg-white/10"
+                      className={`flex h-12 w-12 items-center justify-center rounded-full transition-colors ${
+                        speakerVolume === 100
+                          ? "bg-white text-black hover:bg-white/90"
+                          : "bg-white/5 text-white hover:bg-white/10"
+                      }`}
                       type="button"
                       title="Tăng âm lượng"
                     >
@@ -732,7 +721,11 @@ function CallOverlay({
                     </button>
                     <button
                       onClick={toggleCamera}
-                      className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-white transition-colors hover:bg-white/10"
+                      className={`flex h-12 w-12 items-center justify-center rounded-full transition-colors ${
+                        !isCameraOff
+                          ? "bg-white text-black hover:bg-white/90"
+                          : "bg-white/5 text-white hover:bg-white/10"
+                      }`}
                       type="button"
                       title={isCameraOff ? "Bật camera" : "Tắt camera"}
                     >
@@ -762,7 +755,11 @@ function CallOverlay({
                   <div className="mt-4 flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-3">
                     <button
                       onClick={toggleMic}
-                      className="flex h-11 w-11 items-center justify-center rounded-full bg-white/5 text-white transition-colors hover:bg-white/10"
+                      className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
+                        !isMicMuted
+                          ? "bg-white text-black hover:bg-white/90"
+                          : "bg-white/5 text-white hover:bg-white/10"
+                      }`}
                       type="button"
                       title={isMicMuted ? "Bật mic" : "Tắt mic"}
                     >
@@ -778,7 +775,11 @@ function CallOverlay({
                     </button>
                     <button
                       onClick={volumeUp}
-                      className="flex h-11 w-11 items-center justify-center rounded-full bg-white/5 text-white transition-colors hover:bg-white/10"
+                      className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
+                        speakerVolume === 100
+                          ? "bg-white text-black hover:bg-white/90"
+                          : "bg-white/5 text-white hover:bg-white/10"
+                      }`}
                       type="button"
                       title="Tăng âm lượng"
                     >

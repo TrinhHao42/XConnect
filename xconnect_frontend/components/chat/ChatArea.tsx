@@ -5,7 +5,7 @@ import { useSocket } from "@/hooks/useSocket";
 import { useChatStore } from "@/store/chat.store";
 import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/libs/api";
-import { Phone, Video, MoreVertical, PlusCircle, Smile, Send, MessageSquare, Loader2, Forward, Users, ArrowLeft, X, Image as ImageIcon, Paperclip, FileText, ChevronDown, ChevronUp, ChevronRight, Quote, Pin, Star, ListTodo, Info, Clock, FolderArchive, Trash2, Copy, MoreHorizontal, Undo2 } from "lucide-react";
+import { Phone, Video, MoreVertical, PlusCircle, Smile, Send, MessageSquare, Loader2, Forward, Users, ArrowLeft, X, Image as ImageIcon, Paperclip, FileText, ChevronDown, ChevronUp, ChevronRight, Quote, Pin, Star, ListTodo, Info, Clock, FolderArchive, Trash2, Copy, MoreHorizontal, Undo2, ThumbsUp, CreditCard, Type, Contact, Zap, MapPin } from "lucide-react";
 import { Message } from "@/types";
 import ShareModal from "./ShareModal";
 import DOMPurify from "isomorphic-dompurify";
@@ -373,8 +373,45 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
     setPendingFile({ name: file.name, size: file.size, file });
   };
 
-  const handleSend = () => {
-    const hasText = inputText.trim().length > 0;
+  const handleShareLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error(language === "vi" ? "Trình duyệt của bạn không hỗ trợ định vị" : "Your browser does not support geolocation");
+      return;
+    }
+
+    toast.promise(
+      new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+            const labelText = language === "vi" ? "Vị trí hiện tại của tôi" : "My Current Location";
+            const messageText = `📍 <strong>${labelText}</strong>:<br/><a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-semibold text-xs transition-colors border border-blue-500/20 cursor-pointer">🗺️ Xem trên Google Maps</a>`;
+            handleSend(messageText);
+            resolve(true);
+          },
+          (error) => {
+            reject(error);
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      }),
+      {
+        loading: language === "vi" ? "Đang lấy vị trí của bạn..." : "Getting your location...",
+        success: language === "vi" ? "Đã chia sẻ vị trí thành công!" : "Location shared successfully!",
+        error: (err: any) => {
+          console.error("Location error:", err);
+          return language === "vi"
+            ? "Không thể lấy vị trí. Vui lòng bật định vị GPS và cho phép truy cập."
+            : "Could not retrieve location. Please enable GPS and grant permission.";
+        }
+      }
+    );
+  };
+
+  const handleSend = (forcedText?: string) => {
+    const textToUse = forcedText !== undefined ? forcedText : inputText;
+    const hasText = textToUse.trim().length > 0;
     const hasImage = !!pendingImage;
     const hasFile = !!pendingFile;
     if ((!hasText && !hasImage && !hasFile) || !activeRoomId || !user) return;
@@ -394,7 +431,7 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
       fileToUpload = pendingFile!.file;
       content = `uploading-file:${tempId}|${pendingFile!.name}|${pendingFile!.size}`;
     } else {
-      let rawText = inputText.trim();
+      let rawText = textToUse.trim();
       if (replyingMessage) {
         const senderName = replyingMessage.senderId === user.id
           ? (language === "vi" ? "Bạn" : "You")
@@ -897,10 +934,10 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
           </div>
         )}
 
-        <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+        <div className="p-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800/80">
           <div className="relative">
             {showEmojiPicker && (
-              <div className="absolute bottom-full left-0 mb-3 z-30 shadow-2xl rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800/80 w-full sm:w-[350px]">
+              <div className="absolute bottom-full left-4 mb-3 z-30 shadow-2xl rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800/80 w-full sm:w-[350px]">
                 <EmojiPicker
                   onEmojiClick={handleEmojiClick as any}
                   theme={(resolvedTheme === "dark" ? "dark" : "light") as any}
@@ -933,105 +970,209 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
               }}
             />
 
-            {replyingMessage && (
-              <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 px-4 py-2.5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="p-1.5 bg-blue-500/10 dark:bg-blue-500/20 text-blue-500 rounded-lg shrink-0">
-                    <Quote className="w-3.5 h-3.5" />
+            {/* Replying and Pending indicators */}
+            {(replyingMessage || pendingImage || pendingFile) && (
+              <div className="px-4 pt-3 pb-1">
+                {replyingMessage && (
+                  <div className="mb-2 flex items-center justify-between gap-3 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 px-4 py-2.5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="p-1.5 bg-blue-500/10 dark:bg-blue-500/20 text-blue-500 rounded-lg shrink-0">
+                        <Quote className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          {language === "vi" ? "Đang trả lời" : "Replying to"} {
+                            replyingMessage.senderId === user?.id
+                              ? (language === "vi" ? "chính mình" : "yourself")
+                              : (activeConv?.participants?.find((p: any) => p.id === replyingMessage.senderId)?.name || "User")
+                          }
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 max-w-[500px]">
+                          {getCleanPreviewContent(replyingMessage)}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setReplyingMessage(null)}
+                      className="rounded-full p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      {language === "vi" ? "Đang trả lời" : "Replying to"} {
-                        replyingMessage.senderId === user?.id
-                          ? (language === "vi" ? "chính mình" : "yourself")
-                          : (activeConv?.participants?.find((p: any) => p.id === replyingMessage.senderId)?.name || "User")
-                      }
-                    </p>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 max-w-[500px]">
-                      {getCleanPreviewContent(replyingMessage)}
-                    </p>
+                )}
+
+                {pendingImage && (
+                  <div className="mb-2 inline-flex items-center gap-3 rounded-2xl border border-outline-variant/10 bg-surface-container-low px-3 py-2">
+                    <img src={pendingImage.previewUrl} alt={pendingImage.name} className="h-14 w-14 rounded-none border-0 ring-0 shadow-none object-cover" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-on-surface truncate">{pendingImage.name}</p>
+                      <p className="text-xs text-outline">{t.readyToSendAsImage}</p>
+                    </div>
+                    <button
+                      onClick={() => setPendingImage(null)}
+                      className="ml-2 rounded-full px-3 py-1 text-xs font-semibold text-outline hover:bg-surface-container-high"
+                    >
+                      {t.remove}
+                    </button>
                   </div>
-                </div>
-                <button
-                  onClick={() => setReplyingMessage(null)}
-                  className="rounded-full p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                )}
+
+                {pendingFile && (
+                  <div className="mb-2 inline-flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <FileText className="h-8 w-8 text-cyan-500 shrink-0 animate-bounce" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{pendingFile.name}</p>
+                      <p className="text-xs text-slate-400">{formatFileSize(pendingFile.size)}</p>
+                    </div>
+                    <button
+                      onClick={() => setPendingFile(null)}
+                      className="ml-2 rounded-full px-3 py-1 text-xs font-semibold text-red-500 bg-red-500/10 hover:bg-red-500/20 transition-colors"
+                    >
+                      Xóa
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
-            {pendingImage && (
-              <div className="mb-3 inline-flex items-center gap-3 rounded-2xl border border-outline-variant/10 bg-surface-container-low px-3 py-2">
-                <img src={pendingImage.previewUrl} alt={pendingImage.name} className="h-14 w-14 rounded-none border-0 ring-0 shadow-none object-cover" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-on-surface truncate">{pendingImage.name}</p>
-                  <p className="text-xs text-outline">{t.readyToSendAsImage}</p>
-                </div>
+            {/* Zalo-style Unified Chat Panel */}
+            <div className="flex flex-col bg-white dark:bg-slate-900">
+              {/* Function Buttons Toolbar */}
+              <div className="flex items-center gap-1.5 px-4 py-1.5 border-b border-slate-100 dark:border-slate-800/40 overflow-x-auto no-scrollbar scroll-smooth">
+                {/* Sticker / Emoji Toggle (Tongue face) */}
                 <button
-                  onClick={() => setPendingImage(null)}
-                  className="ml-2 rounded-full px-3 py-1 text-xs font-semibold text-outline hover:bg-surface-container-high"
+                  onClick={() => setShowEmojiPicker((current) => !current)}
+                  className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all shrink-0"
+                  title="Emoji / Sticker"
                 >
-                  {t.remove}
+                  <Smile className="w-5 h-5" />
                 </button>
-              </div>
-            )}
 
-            {pendingFile && (
-              <div className="mb-3 inline-flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <FileText className="h-8 w-8 text-cyan-500 shrink-0 animate-bounce" />
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{pendingFile.name}</p>
-                  <p className="text-xs text-slate-400">{formatFileSize(pendingFile.size)}</p>
-                </div>
-                <button
-                  onClick={() => setPendingFile(null)}
-                  className="ml-2 rounded-full px-3 py-1 text-xs font-semibold text-red-500 bg-red-500/10 hover:bg-red-500/20 transition-colors"
-                >
-                  Xóa
-                </button>
-              </div>
-            )}
-
-            <div className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-3 flex items-center gap-3 shadow-sm border border-slate-300 dark:border-slate-700">
-              <div className="flex items-center gap-1">
+                {/* Gửi hình ảnh */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-2 text-slate-500 dark:text-slate-400 hover:scale-105 active:scale-95 transition-colors"
+                  className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all shrink-0"
                   title="Gửi hình ảnh"
                 >
                   <ImageIcon className="w-5 h-5" />
                 </button>
+
+                {/* Gửi tài liệu */}
                 <button
                   onClick={() => docInputRef.current?.click()}
-                  className="p-2 text-slate-500 dark:text-slate-400 hover:scale-105 active:scale-95 transition-colors"
+                  className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all shrink-0"
                   title="Gửi tài liệu"
                 >
                   <Paperclip className="w-5 h-5" />
                 </button>
+
+                {/* Chia sẻ vị trí / định vị */}
                 <button
-                  onClick={() => setShowEmojiPicker((current) => !current)}
-                  className="p-2 text-slate-500 dark:text-slate-400 hover:scale-105 active:scale-95 transition-colors"
-                  title="Emoji"
+                  onClick={handleShareLocation}
+                  className="p-1.5 text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all shrink-0 cursor-pointer"
+                  title={language === "vi" ? "Gửi định vị / vị trí" : "Send Location"}
                 >
-                  <Smile className="w-5 h-5" />
+                  <MapPin className="w-5 h-5" />
+                </button>
+
+                {/* Danh thiếp */}
+                <button
+                  className="p-1.5 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all shrink-0 cursor-not-allowed"
+                  disabled
+                  title="Danh thiếp"
+                >
+                  <Contact className="w-5 h-5" />
+                </button>
+
+                {/* Giao việc */}
+                <button
+                  className="p-1.5 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all shrink-0 cursor-not-allowed"
+                  disabled
+                  title="Giao việc"
+                >
+                  <ListTodo className="w-5 h-5" />
+                </button>
+
+                {/* Định dạng văn bản */}
+                <button
+                  className="p-1.5 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all shrink-0 cursor-not-allowed"
+                  disabled
+                  title="Định dạng"
+                >
+                  <Type className="w-5 h-5" />
+                </button>
+
+                {/* Tin nhắn nhanh */}
+                <button
+                  className="p-1.5 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all shrink-0 cursor-not-allowed"
+                  disabled
+                  title="Tin nhắn nhanh"
+                >
+                  <Zap className="w-5 h-5" />
+                </button>
+
+                {/* Chuyển tiền / Gửi thẻ */}
+                <button
+                  className="p-1.5 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all shrink-0 cursor-not-allowed"
+                  disabled
+                  title="Chuyển tiền"
+                >
+                  <CreditCard className="w-5 h-5" />
+                </button>
+
+                {/* Thêm tùy chọn */}
+                <button
+                  className="p-1.5 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all shrink-0 cursor-not-allowed"
+                  disabled
+                  title="Thêm"
+                >
+                  <MoreHorizontal className="w-5 h-5" />
                 </button>
               </div>
-              <textarea
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-1 bg-transparent border-none focus:ring-0 text-base resize-none max-h-36 placeholder:text-slate-500 dark:placeholder:text-slate-400 outline-none text-slate-900 dark:text-slate-100"
-                placeholder={t.typeAMessage}
-                rows={1}
-              />
-              <button
-                onClick={handleSend}
-                disabled={!inputText.trim() && !pendingImage && !pendingFile}
-                className="p-3 bg-blue-500 text-white rounded-xl hover:scale-105 active:scale-95 transition-transform flex items-center justify-center shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:hover:scale-100"
-              >
-                <Send className="w-5 h-5 fill-current" />
-              </button>
+
+              {/* Typing Input Bar */}
+              <div className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800/20">
+                <textarea
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="flex-1 bg-transparent border-none focus:ring-0 text-base resize-none max-h-36 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none text-slate-900 dark:text-slate-100 py-2.5 scrollbar-thin"
+                  placeholder={
+                    language === "vi"
+                      ? `Nhập @, tin nhắn tới ${chatTitle}`
+                      : `Type @, message to ${chatTitle}`
+                  }
+                  rows={1}
+                />
+
+                {/* Emoji button inside the text input area on the right */}
+                <button
+                  onClick={() => setShowEmojiPicker((current) => !current)}
+                  className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all shrink-0"
+                  title="Emoji"
+                >
+                  <Smile className="w-5.5 h-5.5" />
+                </button>
+
+                {/* Send / Like Button */}
+                {inputText.trim() || pendingImage || pendingFile ? (
+                  <button
+                    onClick={() => handleSend()}
+                    className="p-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl active:scale-95 transition-transform flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0 cursor-pointer"
+                    title="Gửi"
+                  >
+                    <Send className="w-4 h-4 fill-current" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleSend("👍")}
+                    className="p-1 text-yellow-500 hover:text-yellow-600 dark:text-yellow-400 hover:scale-110 active:scale-90 transition-transform shrink-0 cursor-pointer"
+                    title="Thích"
+                  >
+                    <ThumbsUp className="w-6 h-6 fill-yellow-400 text-yellow-500 dark:fill-yellow-400 dark:text-yellow-400" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
