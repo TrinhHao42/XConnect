@@ -43,7 +43,13 @@ export const useSocket = () => {
       useChatStore.getState().addMessage({
         id: data.id,
         content: data.content || "",
-        type: data.type || (typeof data.content === "string" && data.content.startsWith("data:image/") ? "image" : "text"),
+        type: data.type || (
+          typeof data.content === "string" && (data.content.startsWith("data:image/") || data.content.startsWith("uploading-image:"))
+            ? "image"
+            : typeof data.content === "string" && (data.content.startsWith("file:") || data.content.startsWith("uploading-file:"))
+              ? "file"
+              : "text"
+        ),
         senderId: data.senderId,
         roomId,
         createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
@@ -56,6 +62,14 @@ export const useSocket = () => {
       const roomId = conversationId || activeRoomId;
       if (roomId && tempId) {
         useChatStore.getState().updateMessageStatus(roomId, tempId, messageId, status);
+      }
+    };
+
+    const onMessageRecalled = ({ messageId, conversationId }: any) => {
+      const { activeRoomId } = useChatStore.getState();
+      const roomId = conversationId || activeRoomId;
+      if (roomId && messageId) {
+        useChatStore.getState().deleteMessage(roomId, messageId);
       }
     };
 
@@ -111,6 +125,7 @@ export const useSocket = () => {
     socket.on("friendRequestReceived", onFriendRequestReceived);
     socket.on("friendRequestAccepted", onFriendRequestAccepted);
     socket.on("friendRequestRejected", onFriendRequestRejected);
+    socket.on("messageRecalled", onMessageRecalled);
 
     // --- Cleanup: remove EXACT handlers to prevent duplicates on re-render ---
     return () => {
@@ -126,6 +141,7 @@ export const useSocket = () => {
       socket.off("friendRequestReceived", onFriendRequestReceived);
       socket.off("friendRequestAccepted", onFriendRequestAccepted);
       socket.off("friendRequestRejected", onFriendRequestRejected);
+      socket.off("messageRecalled", onMessageRecalled);
     };
   }, [isAuthenticated, socket]);
 

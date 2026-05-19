@@ -6,6 +6,7 @@ import { api } from "@/libs/api";
 import { useAuthStore } from "@/store/auth.store";
 import { useChatStore } from "@/store/chat.store";
 import { toast } from "sonner";
+import { useLanguageStore } from "@/store/language.store";
 
 interface Friend {
   id: string;
@@ -20,6 +21,41 @@ interface GroupCreateModalProps {
   onClose: () => void;
 }
 
+const translations = {
+  en: {
+    newGroup: "New Group",
+    createGroupChat: "Create Group Chat",
+    selectAtLeastTwo: "Select at least 2 friends to create a new group",
+    groupNameLabel: "Group name",
+    groupNamePlaceholder: "e.g. Team XConnect",
+    searchFriendsPlaceholder: "Search friends to add to group...",
+    noFriendsFound: "No friends found",
+    tryAnotherSearch: "Try searching for another name or email",
+    loadFriendsFailed: "Failed to load friends list",
+    needThreePeople: "A group needs at least 3 people to create",
+    createGroupSuccess: "Group created successfully",
+    createGroupFailed: "Failed to create group",
+    cancel: "Cancel",
+    create: "Create group"
+  },
+  vi: {
+    newGroup: "Nhóm mới",
+    createGroupChat: "Tạo nhóm chat",
+    selectAtLeastTwo: "Chọn ít nhất 2 bạn bè để tạo nhóm mới",
+    groupNameLabel: "Tên nhóm",
+    groupNamePlaceholder: "Ví dụ: Team XConnect",
+    searchFriendsPlaceholder: "Tìm bạn bè để thêm vào nhóm...",
+    noFriendsFound: "Không có bạn bè phù hợp",
+    tryAnotherSearch: "Thử tìm tên hoặc email khác",
+    loadFriendsFailed: "Không tải được danh sách bạn bè",
+    needThreePeople: "Nhóm cần ít nhất 3 người để tạo",
+    createGroupSuccess: "Đã tạo nhóm thành công",
+    createGroupFailed: "Không thể tạo nhóm",
+    cancel: "Hủy",
+    create: "Tạo nhóm"
+  }
+};
+
 export default function GroupCreateModal({ isOpen, onClose }: GroupCreateModalProps) {
   const { conversations, setConversations, setActiveRoom } = useChatStore();
   const { user } = useAuthStore();
@@ -29,6 +65,9 @@ export default function GroupCreateModal({ isOpen, onClose }: GroupCreateModalPr
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const { language } = useLanguageStore();
+  const t = translations[language];
 
   useEffect(() => {
     if (!isOpen) return;
@@ -40,7 +79,7 @@ export default function GroupCreateModal({ isOpen, onClose }: GroupCreateModalPr
         setFriends(data || []);
       } catch (error) {
         console.error("Failed to load friends for group creation", error);
-        toast.error("Không tải được danh sách bạn bè");
+        toast.error(t.loadFriendsFailed);
       } finally {
         setLoading(false);
       }
@@ -50,7 +89,7 @@ export default function GroupCreateModal({ isOpen, onClose }: GroupCreateModalPr
     setSearch("");
     setSelectedIds([]);
     loadFriends();
-  }, [isOpen]);
+  }, [isOpen, t.loadFriendsFailed]);
 
   const filteredFriends = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -72,25 +111,25 @@ export default function GroupCreateModal({ isOpen, onClose }: GroupCreateModalPr
 
     const memberIds = selectedIds.filter(Boolean);
     if (memberIds.length < 2) {
-      toast.error("Nhóm cần ít nhất 3 người để tạo");
+      toast.error(t.needThreePeople);
       return;
     }
 
     setSubmitting(true);
     try {
       const created = await api.post<any>("/chat/groups", {
-        name: groupName.trim() || "New group",
+        name: groupName.trim() || t.newGroup,
         memberIds,
       });
 
       const nextConversations = [created, ...conversations.filter((conv) => conv.id !== created.id)];
       setConversations(nextConversations as any);
       setActiveRoom(created.id);
-      toast.success("Đã tạo nhóm thành công");
+      toast.success(t.createGroupSuccess);
       onClose();
     } catch (error: any) {
       console.error("Failed to create group", error);
-      toast.error(error?.message || "Không thể tạo nhóm");
+      toast.error(error?.message || t.createGroupFailed);
     } finally {
       setSubmitting(false);
     }
@@ -103,8 +142,8 @@ export default function GroupCreateModal({ isOpen, onClose }: GroupCreateModalPr
       <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-950 shadow-2xl shadow-black/10 dark:shadow-black/40">
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 px-6 py-5">
           <div>
-            <h2 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Tạo nhóm chat</h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Chọn ít nhất 2 bạn bè để tạo nhóm mới</p>
+            <h2 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{t.createGroupChat}</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t.selectAtLeastTwo}</p>
           </div>
           <button onClick={onClose} className="rounded-full bg-slate-100 dark:bg-white/5 p-2 text-slate-600 dark:text-slate-300 transition-colors hover:bg-slate-200 dark:hover:bg-white/10">
             <X className="h-5 w-5" />
@@ -113,11 +152,11 @@ export default function GroupCreateModal({ isOpen, onClose }: GroupCreateModalPr
 
         <div className="border-b border-slate-200 dark:border-white/10 px-6 py-5">
           <label className="block">
-            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">Tên nhóm</span>
+            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">{t.groupNameLabel}</span>
             <input
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
-              placeholder="Ví dụ: Team XConnect"
+              placeholder={t.groupNamePlaceholder}
               className="w-full rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-4 py-3 text-sm text-slate-900 dark:text-white outline-none transition focus:border-cyan-500/40 dark:focus:border-cyan-400/40 focus:bg-slate-100 dark:focus:bg-white/10"
             />
           </label>
@@ -129,7 +168,7 @@ export default function GroupCreateModal({ isOpen, onClose }: GroupCreateModalPr
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm bạn bè để thêm vào nhóm..."
+              placeholder={t.searchFriendsPlaceholder}
               className="w-full rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 py-3 pl-11 pr-4 text-sm text-slate-900 dark:text-white outline-none transition focus:border-cyan-500/40 dark:focus:border-cyan-400/40 focus:bg-slate-100 dark:focus:bg-white/10"
             />
           </div>
@@ -142,8 +181,8 @@ export default function GroupCreateModal({ isOpen, onClose }: GroupCreateModalPr
             </div>
           ) : filteredFriends.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center text-slate-500 dark:text-slate-400">
-              <p className="text-lg font-semibold text-slate-900 dark:text-white">Không có bạn bè phù hợp</p>
-              <p className="mt-1 text-sm">Thử tìm tên hoặc email khác</p>
+              <p className="text-lg font-semibold text-slate-900 dark:text-white">{t.noFriendsFound}</p>
+              <p className="mt-1 text-sm">{t.tryAnotherSearch}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -180,7 +219,7 @@ export default function GroupCreateModal({ isOpen, onClose }: GroupCreateModalPr
             onClick={onClose}
             className="rounded-full px-5 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-white/5 dark:hover:text-white"
           >
-            Hủy
+            {t.cancel}
           </button>
           <button
             onClick={handleCreateGroup}
@@ -188,7 +227,7 @@ export default function GroupCreateModal({ isOpen, onClose }: GroupCreateModalPr
             className="inline-flex items-center gap-2 rounded-full bg-cyan-500 px-6 py-2.5 text-sm font-semibold text-slate-950 transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Tạo nhóm
+            {t.create}
           </button>
         </div>
       </div>
