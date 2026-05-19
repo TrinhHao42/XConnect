@@ -1,4 +1,4 @@
-name: Deploy Backend to EC2 with Docker
+name: Deploy Backend to EC2 with Docker (Optimized)
 
 on:
   push:
@@ -21,12 +21,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js (with npm cache)
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: ./XConnect_backend/package-lock.json
+          cache-dependency-path: XConnect_backend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -43,7 +43,7 @@ jobs:
           fi
 
   build-and-push:
-    name: Build and Push Docker Image
+    name: Build and Push Docker Image (Cached)
     needs: test
     runs-on: ubuntu-latest
 
@@ -60,12 +60,16 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build and push Docker image (with cache)
         uses: docker/build-push-action@v5
         with:
           context: ./XConnect_backend
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:buildcache,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
   deploy:
     name: Deploy to EC2
@@ -82,14 +86,14 @@ jobs:
           script: |
             set -e
 
-            echo "=== PULL NEW IMAGE ==="
+            echo "=== PULL IMAGE ==="
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:latest
 
             echo "=== STOP OLD CONTAINER ==="
             sudo docker stop xconnect-backend || true
             sudo docker rm xconnect-backend || true
 
-            echo "=== RUN NEW CONTAINER ==="
+            echo "=== START NEW CONTAINER ==="
             sudo docker run -d --name xconnect-backend \
               --restart unless-stopped \
               -p 8080:8080 \
