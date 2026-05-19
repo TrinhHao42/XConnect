@@ -160,7 +160,7 @@ export default function ConversationList() {
                   <div className="relative shrink-0">
                     <div className="w-12 h-12 rounded-xl bg-linear-to-br from-indigo-400 to-blue-500 text-white flex items-center justify-center font-bold text-lg overflow-hidden">
                       {getAvatarUrl(item) ? (
-                        <img src={getAvatarUrl(item)} alt="Avatar" className="w-full h-full object-cover" />
+                        <img src={getAvatarUrl(item) ?? undefined} alt="Avatar" className="w-full h-full object-cover" />
                       ) : (
                         getInitial(displayName)
                       )}
