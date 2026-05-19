@@ -673,8 +673,16 @@ function CallOverlay({
               <div className="relative flex-1 overflow-hidden rounded-[28px] border border-white/10 bg-slate-900 shadow-2xl shadow-black/40">
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800" />
 
-                {isOutgoing || isConnecting ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center">
+                {/* Remote Video Container: Always render in DOM so ref is never null when Agora's user-published event triggers */}
+                <div
+                  ref={remoteVideoContainerRef}
+                  className={`absolute inset-0 [&>video]:h-full [&>video]:w-full [&>video]:object-cover ${
+                    isOutgoing || isConnecting ? "hidden" : ""
+                  }`}
+                />
+
+                {(isOutgoing || isConnecting) && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center z-10">
                     <div className="flex h-28 w-28 items-center justify-center rounded-[28px] bg-linear-to-br from-indigo-500 to-cyan-500 text-4xl font-bold text-white shadow-lg shadow-cyan-500/20">
                       {getInitial(peerName)}
                     </div>
@@ -685,8 +693,6 @@ function CallOverlay({
                       </p>
                     </div>
                   </div>
-                ) : (
-                  <div ref={remoteVideoContainerRef} className="absolute inset-0 [&>video]:h-full [&>video]:w-full [&>video]:object-cover" />
                 )}
 
                 <div className="absolute right-4 top-4 z-10 w-[28vw] min-w-[140px] max-w-[260px] overflow-hidden rounded-[24px] border border-white/15 bg-black/35 shadow-2xl backdrop-blur-md">

@@ -127,6 +127,23 @@ export const useWebRTC = () => {
       initiator: true,
       trickle: false,
       stream: stream,
+      config: {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+          { urls: "stun:stun2.l.google.com:19302" },
+          { urls: "stun:stun3.l.google.com:19302" },
+          { urls: "stun:stun4.l.google.com:19302" },
+          // CẤU HÌNH TURN SERVER Ở ĐÂY NẾU KẾT NỐI QUA MẠNG KHÁC NHAU (VÍ DỤ: 4G HOẶC WIFI CÔNG CỘNG)
+          /*
+          {
+            urls: "turn:your-turn-server-domain.com:3478",
+            username: "your-username",
+            credential: "your-password"
+          }
+          */
+        ]
+      }
     });
 
     peer.on("signal", (data) => {
@@ -169,6 +186,23 @@ export const useWebRTC = () => {
       initiator: false,
       trickle: false,
       stream: stream,
+      config: {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+          { urls: "stun:stun2.l.google.com:19302" },
+          { urls: "stun:stun3.l.google.com:19302" },
+          { urls: "stun:stun4.l.google.com:19302" },
+          // CẤU HÌNH TURN SERVER TƯƠNG TỰ Ở ĐÂY
+          /*
+          {
+            urls: "turn:your-turn-server-domain.com:3478",
+            username: "your-username",
+            credential: "your-password"
+          }
+          */
+        ]
+      }
     });
 
     peer.on("signal", (data) => {
