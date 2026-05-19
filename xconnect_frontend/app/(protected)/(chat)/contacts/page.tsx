@@ -267,13 +267,7 @@ export default function ContactsPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-slate-900 dark:text-white truncate">{friend.name || t.noName}</p>
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <p className="text-sm text-slate-400 truncate flex-1 min-w-0">{friend.email}</p>
-                            <span className="w-1 h-1 rounded-full bg-slate-300 shrink-0" />
-                            <p className={`text-[11px] font-medium shrink-0 ${isOnline ? "text-emerald-500" : "text-slate-400"}`}>
-                              {isOnline ? t.online : t.offline}
-                            </p>
-                          </div>
+                          <p className="text-sm text-slate-400 truncate">{friend.email}</p>
                           {friend.bio && <p className="text-xs text-slate-400 truncate mt-0.5 italic">{friend.bio}</p>}
                         </div>
                         <button
