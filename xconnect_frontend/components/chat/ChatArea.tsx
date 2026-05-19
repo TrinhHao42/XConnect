@@ -853,8 +853,8 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
                           onClick={handleMessageBubbleClick}
                           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.content) }}
                           className={`wrap-break-word text-inherit [&_blockquote]:border-l-3 [&_blockquote]:pl-3 [&_blockquote]:py-1.5 [&_blockquote]:pr-2 [&_blockquote]:rounded-r-lg [&_blockquote]:mb-2 [&_blockquote]:text-[11px] [&_blockquote]:block [&_blockquote]:select-none [&_blockquote]:cursor-pointer [&_blockquote]:transition-all [&_blockquote]:duration-200 ${isMine
-                              ? "[&_blockquote]:border-white/60 [&_blockquote]:bg-white/15 [&_blockquote]:hover:bg-white/25 [&_blockquote]:text-blue-50/95 [&_blockquote_strong]:text-white [&_blockquote_strong]:font-semibold"
-                              : "[&_blockquote]:border-blue-500 [&_blockquote]:bg-slate-50 [&_blockquote]:dark:bg-slate-900/50 [&_blockquote]:hover:bg-slate-100/80 [&_blockquote]:dark:hover:bg-slate-800/80 [&_blockquote]:text-slate-600 [&_blockquote]:dark:text-slate-400 [&_blockquote_strong]:text-blue-600 [&_blockquote_strong]:dark:text-blue-400 [&_blockquote_strong]:font-semibold"
+                              ? "[&_blockquote]:border-white/60 [&_blockquote]:bg-white/15 [&_blockquote]:hover:bg-white/25 [&_blockquote]:text-blue-50/95 [&_blockquote_strong]:text-white [&_blockquote_strong]:font-semibold [&_a]:!bg-white/20 [&_a]:!border-white/30 [&_a]:!text-white [&_a:hover]:!bg-white/30"
+                              : "[&_blockquote]:border-blue-500 [&_blockquote]:bg-slate-50 [&_blockquote]:dark:bg-slate-900/50 [&_blockquote]:hover:bg-slate-100/80 [&_blockquote]:dark:hover:bg-slate-800/80 [&_blockquote]:text-slate-600 [&_blockquote]:dark:text-slate-400 [&_blockquote_strong]:text-blue-600 [&_blockquote_strong]:dark:text-blue-400 [&_blockquote_strong]:font-semibold [&_a]:!bg-blue-500/10 [&_a]:!border-blue-500/20 [&_a]:!text-blue-600 [&_a]:dark:!text-blue-400 [&_a:hover]:!bg-blue-500/20"
                             }`}
                         />
                       )}
@@ -937,12 +937,12 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
         <div className="p-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800/80">
           <div className="relative">
             {showEmojiPicker && (
-              <div className="absolute bottom-full left-4 mb-3 z-30 shadow-2xl rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800/80 w-full sm:w-[350px]">
+              <div className="absolute bottom-full left-4 right-4 sm:right-auto mb-3 z-30 shadow-2xl rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800/80 w-auto sm:w-[350px] h-[280px] sm:h-[350px]">
                 <EmojiPicker
                   onEmojiClick={handleEmojiClick as any}
                   theme={(resolvedTheme === "dark" ? "dark" : "light") as any}
                   width="100%"
-                  height={350}
+                  height="100%"
                   searchDisabled={false}
                   lazyLoadEmojis
                 />
@@ -1139,8 +1139,8 @@ export default function ChatArea({ onBack }: ChatAreaProps) {
                   className="flex-1 bg-transparent border-none focus:ring-0 text-base resize-none max-h-36 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none text-slate-900 dark:text-slate-100 py-2.5 scrollbar-thin"
                   placeholder={
                     language === "vi"
-                      ? `Nhập @, tin nhắn tới ${chatTitle}`
-                      : `Type @, message to ${chatTitle}`
+                      ? `Nhập @, tin nhắn tới ${chatTitle.length > 15 ? chatTitle.substring(0, 15) + "..." : chatTitle}`
+                      : `Type @, message to ${chatTitle.length > 15 ? chatTitle.substring(0, 15) + "..." : chatTitle}`
                   }
                   rows={1}
                 />
