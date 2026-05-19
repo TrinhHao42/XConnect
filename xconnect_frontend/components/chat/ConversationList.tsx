@@ -51,10 +51,19 @@ function formatTime(dateStr: string, t: any) {
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-function formatPreview(content: string | undefined, t: any) {
+function formatPreview(content: string | undefined, t: any, language: "vi" | "en") {
   if (!content) return t.noMessages;
-  if (content.startsWith("data:image/")) return t.image;
-  return content;
+  if (content.startsWith("data:image/") || content.startsWith("uploading-image:")) return language === "vi" ? "[Hình ảnh]" : "[Image]";
+  if (content.startsWith("file:") || content.startsWith("uploading-file:")) return language === "vi" ? "[Tệp tin]" : "[File]";
+  
+  let clean = content;
+  if (clean.includes("<blockquote") || clean.includes("&lt;blockquote")) {
+    const divider = clean.includes("</blockquote>") ? "</blockquote>" : "&lt;/blockquote&gt;";
+    const parts = clean.split(divider);
+    const textPart = parts[parts.length - 1].trim();
+    return (language === "vi" ? "[Phản hồi] " : "[Reply] ") + textPart;
+  }
+  return clean;
 }
 
 export default function ConversationList() {
@@ -87,6 +96,9 @@ export default function ConversationList() {
       return conv.name || `Group (${conv.participants?.length || 0})`;
     }
     const other = conv.participants?.find((p) => p.id !== user.id);
+    if (!other) {
+      return "My Document";
+    }
     return other?.name || other?.email || "Unknown";
   }
 
@@ -97,6 +109,9 @@ export default function ConversationList() {
   function getAvatarUrl(conv: ConversationItem) {
     if (conv.kind === "group") return null;
     const other = conv.participants?.find((p) => p.id !== user?.id);
+    if (!other) {
+      return "/mydocument.png";
+    }
     return other?.avatar;
   }
 
@@ -176,13 +191,8 @@ export default function ConversationList() {
                         {formatTime(item.updatedAt, t)}
                       </span>
                     </div>
-                    {item.kind === "group" && (
-                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-cyan-500">
-                        {t.groupChat}
-                      </p>
-                    )}
                     <p className="text-xs truncate text-slate-600 dark:text-slate-300 font-medium">
-                      {formatPreview(lastMsg?.content, t)}
+                      {formatPreview(lastMsg?.content, t, language)}
                     </p>
                   </div>
                 </div>

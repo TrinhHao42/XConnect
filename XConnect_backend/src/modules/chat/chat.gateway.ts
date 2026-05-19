@@ -107,4 +107,27 @@ export class ChatGateway
       client.emit('error', { message: 'Cannot send message' });
     }
   }
+
+  @SubscribeMessage('recallMessage')
+  async handleRecallMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { messageId: string; conversationId: string },
+  ) {
+    try {
+      const user = client.data.user;
+      if (!user) throw new Error('Not authenticated');
+
+      const userId = String(user.sub || user.userId || user.id);
+      const { messageId, conversationId } = payload;
+
+      await this.chatService.recallMessage(messageId, userId);
+
+      // Phát sự kiện thu hồi tin nhắn tới tất cả client trong room bao gồm cả người gửi
+      this.server.to(conversationId).emit('messageRecalled', { messageId, conversationId });
+    } catch (e: unknown) {
+      const err = e as Error;
+      this.logger.error(`Error recalling message: ${err.message}`);
+      client.emit('error', { message: err.message || 'Cannot recall message' });
+    }
+  }
 }

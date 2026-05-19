@@ -40,9 +40,35 @@ export class ChatService {
   // Create or get 1v1 conversation
   async createOrGetConversation(user1Id: string, user2Id: string) {
     if (user1Id === user2Id) {
-      throw new BadRequestException(
-        'Cannot create a conversation with yourself',
-      );
+      const existingSelf = await this.prisma.conversation.findFirst({
+        where: {
+          kind: 'direct',
+          participantIds: {
+            equals: [user1Id],
+          },
+        },
+        include: {
+          participants: {
+            select: { id: true, name: true, email: true, avatar: true },
+          },
+        },
+      });
+      if (existingSelf) return existingSelf;
+
+      return this.prisma.conversation.create({
+        data: {
+          kind: 'direct',
+          participantIds: [user1Id],
+          participants: {
+            connect: [{ id: user1Id }],
+          },
+        },
+        include: {
+          participants: {
+            select: { id: true, name: true, email: true, avatar: true },
+          },
+        },
+      });
     }
 
     const existing = await this.prisma.conversation.findFirst({
@@ -122,6 +148,31 @@ export class ChatService {
 
   // Get all conversations for a user
   async getUserConversations(userId: string) {
+    const existingSelf = await this.prisma.conversation.findFirst({
+      where: {
+        kind: 'direct',
+        participantIds: {
+          equals: [userId],
+        },
+      },
+    });
+
+    if (!existingSelf) {
+      try {
+        await this.prisma.conversation.create({
+          data: {
+            kind: 'direct',
+            participantIds: [userId],
+            participants: {
+              connect: [{ id: userId }],
+            },
+          },
+        });
+      } catch (e) {
+        console.error('Failed to auto-create self-conversation:', e);
+      }
+    }
+
     return this.prisma.conversation.findMany({
       where: {
         participantIds: {
@@ -461,6 +512,23 @@ export class ChatService {
           select: { id: true, name: true, email: true },
         },
       },
+    });
+  }
+
+  // Recall a message (Delete for everyone)
+  async recallMessage(messageId: string, userId: string) {
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+    });
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+    if (message.senderId !== userId) {
+      throw new ForbiddenException('You can only recall your own messages');
+    }
+
+    await this.prisma.message.delete({
+      where: { id: messageId },
     });
   }
 }

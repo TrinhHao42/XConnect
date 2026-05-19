@@ -62,15 +62,14 @@ export default function RegisterPage() {
     }
 
     try {
-      const data = await api.post<{ accessToken: string; user: any }>("/auth/register", {
+      await api.post<any>("/auth/register", {
         email,
         repassword,
         password,
         name,
       });
-      setAuth(data.user, data.accessToken);
       toast.success(t.registerSuccess);
-      router.push("/chat");
+      router.push("/login");
     } catch (e: any) {
       toast.error(e.message || t.registerFailed);
     } finally {
