@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install deps (INCLUDING prisma CLI)
-RUN npm ci
+RUN npm install
 
 # Copy prisma FIRST (QUAN TRỌNG)
 COPY prisma ./prisma
