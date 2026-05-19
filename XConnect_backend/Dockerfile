@@ -3,40 +3,26 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
-
-# Install deps (INCLUDING prisma CLI)
 RUN npm install
 
-# Copy prisma FIRST (QUAN TRỌNG)
+# 👇 PHẢI COPY PRISMA TRƯỚC
 COPY prisma ./prisma
-
-# Copy full source
 COPY . .
 
-# Generate prisma client
+# 👇 generate ở builder (KHÔNG phải postinstall)
 RUN npx prisma generate
 
-# Build app
 RUN npm run build
 
 
-# -------------------
-# Production stage
-# -------------------
 FROM node:20-alpine AS runner
 WORKDIR /app
 
 COPY package*.json ./
-
-# chỉ install production deps
 RUN npm install --omit=dev
 
-# copy build output
 COPY --from=builder /app/dist ./dist
-
-# copy prisma runtime (QUAN TRỌNG)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/prisma ./prisma
