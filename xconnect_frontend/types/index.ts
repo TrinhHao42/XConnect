@@ -63,6 +63,7 @@ export interface ServerToClientEvents {
   userTyping: (payload: { userId: string; conversationId: string }) => void;
   userStoppedTyping: (payload: { userId: string; conversationId: string }) => void;
   updateOnlineUsers: (users: string[]) => void;
+  userProfileUpdated: (data: { userId: string; name?: string; avatar?: string }) => void;
   friendRequestReceived: (data: any) => void;
   friendRequestAccepted: (data: any) => void;
   friendRequestRejected: (data: any) => void;
