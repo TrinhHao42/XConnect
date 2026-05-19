@@ -12,7 +12,7 @@ import { AuthService } from './auth.service';
 import type { Response, Request } from 'express';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthGuard } from '@nestjs/passport';
-import { AuthRequest } from '../common/types/auth-request.interface';
+import type { AuthRequest } from '../common/types/auth-request.interface';
 
 @Controller('auth')
 export class AuthController {
