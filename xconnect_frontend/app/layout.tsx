@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "XConnect",
-  description: "A free messaging app that brings the concept of connection back to its true meaning.",
+  title: "XConnect | Messaging Portfolio",
+  description: "XConnect is a polished messaging app with chat, calling, and a modern animated UI.",
 };
 
 export default function RootLayout({
@@ -30,7 +30,13 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col relative isolate">
+        <div aria-hidden="true" className="fixed inset-0 -z-20 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 hero-grid opacity-35" />
+          <div className="ambient-orb absolute -top-16 left-[-3%] h-40 w-40 rounded-full bg-cyan-400/18" />
+          <div className="ambient-orb ambient-orb-alt absolute top-1/4 right-[-2%] h-48 w-48 rounded-full bg-indigo-500/16" />
+          <div className="absolute bottom-[-10%] left-1/3 h-56 w-56 rounded-full bg-sky-500/10 blur-[90px]" />
+        </div>
         <Providers>
           <Toaster
             position="top-right"
