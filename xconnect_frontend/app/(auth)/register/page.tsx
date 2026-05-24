@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Mail, Lock, Eye, Sparkles, User, ShieldCheck, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
-import { useRouter } from "next/navigation";
 import { api } from "@/libs/api";
 import { toast } from "sonner";
 import { useLanguageStore } from "@/store/language.store";
@@ -47,7 +46,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
 
   const { setAuth } = useAuthStore();
-  const router = useRouter();
   const { language } = useLanguageStore();
   const t = translations[language];
 
@@ -69,7 +67,7 @@ export default function RegisterPage() {
         name,
       });
       toast.success(t.registerSuccess);
-      router.push("/login");
+      window.location.replace("/login");
     } catch (e: any) {
       toast.error(e.message || t.registerFailed);
     } finally {

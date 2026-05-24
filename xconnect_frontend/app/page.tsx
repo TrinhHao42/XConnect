@@ -1,7 +1,5 @@
-import { redirect } from "next/navigation";
+import LandingPage from "@/components/landing/LandingPage";
 
-// Root: proxy.ts guards this route (no token → /login)
-// If authenticated, redirect to /chat
 export default function HomePage() {
-  redirect("/chat");
+  return <LandingPage />;
 }

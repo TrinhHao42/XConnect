@@ -5,6 +5,7 @@ import { MessageSquare, Contact, Settings, HelpCircle } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { usePathname } from "next/navigation";
 import { useLanguageStore } from "@/store/language.store";
+import { useChatStore } from "@/store/chat.store";
 
 const translations = {
   en: {
@@ -25,6 +26,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuthStore();
   const { language } = useLanguageStore();
+  const { activeRoomId } = useChatStore();
   
   const t = translations[language];
 
@@ -35,7 +37,7 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="h-screen w-16 shrink-0 bg-slate-50 dark:bg-[#040815] flex flex-col py-6 border-r border-slate-200 dark:border-slate-900/50">
+    <aside className="hidden md:flex h-screen w-16 shrink-0 bg-slate-50 dark:bg-[#040815] flex-col py-6 border-r border-slate-200 dark:border-slate-900/50">
       {/* User Avatar Top */}
       <div className="px-2 mb-8 flex justify-center">
         <div className="relative">
