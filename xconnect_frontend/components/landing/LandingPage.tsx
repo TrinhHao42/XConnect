@@ -2,17 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, BrainCircuit, Bot, ChevronRight, CircuitBoard, Layers3, LockKeyhole, MessageSquareText, Mic, Palette, PlayCircle, ShieldCheck, Sparkles, Stars, Telescope, Zap } from "lucide-react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useAuthStore } from "@/store/auth.store";
-import InteractiveParticleField from "./InteractiveParticleField";
 import brandIcon from "../../assets/icon.png";
-
-gsap.registerPlugin(ScrollTrigger);
 
 const features = [
   {
@@ -175,14 +170,6 @@ export default function LandingPage() {
   const { token, isAuthenticated } = useAuthStore();
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
-  const [isDesktop, setIsDesktop] = useState(false);
-  const { scrollYProgress } = useScroll();
-  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 24, mass: 0.4 });
-  const mouseX = useSpring(0, { stiffness: 50, damping: 18, mass: 0.2 });
-  const mouseY = useSpring(0, { stiffness: 50, damping: 18, mass: 0.2 });
-  const glowX = useTransform(mouseX, (value) => value - 240);
-  const glowY = useTransform(mouseY, (value) => value - 240);
-  const sectionsRef = useRef<HTMLElement[]>([]);
 
   const marqueeItems = useMemo(
     () => ["Real-time AI", "Glassmorphism", "Scroll storytelling", "Cursor-reactive particles", "Neon motion"],
@@ -190,111 +177,17 @@ export default function LandingPage() {
   );
 
   useEffect(() => {
-    const update = () => setIsDesktop(window.innerWidth >= 1024);
-    update();
-
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-
-  const enableHeavyEffects = isDesktop && !prefersReducedMotion;
-
-  useEffect(() => {
     if (token && isAuthenticated) {
       router.replace("/chat");
     }
   }, [token, isAuthenticated, router]);
 
-  useEffect(() => {
-    if (prefersReducedMotion) return;
-
-    const ctx = gsap.context(() => {
-      sectionsRef.current.forEach((section, index) => {
-        if (!section) return;
-
-        const targets = section.querySelectorAll<HTMLElement>("[data-reveal]");
-
-        gsap.fromTo(
-          section,
-          { opacity: 0, y: 80, filter: "blur(10px)" },
-          {
-            opacity: 1,
-            y: 0,
-            filter: "blur(0px)",
-            duration: 1,
-            ease: "power3.out",
-            scrollTrigger: {
-              trigger: section,
-              start: "top 80%",
-              end: "bottom 70%",
-              toggleActions: "play none none reverse",
-            },
-          }
-        );
-
-        if (targets.length) {
-          gsap.fromTo(
-            targets,
-            { opacity: 0, y: 22 },
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.85,
-              ease: "power3.out",
-              stagger: 0.08,
-              scrollTrigger: {
-                trigger: section,
-                start: "top 75%",
-              },
-            }
-          );
-        }
-
-        gsap.to(section, {
-          y: index % 2 === 0 ? -12 : 12,
-          ease: "none",
-          scrollTrigger: {
-            trigger: section,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: true,
-          },
-        });
-      });
-    });
-
-    return () => ctx.revert();
-  }, [prefersReducedMotion]);
-
-  const addSectionRef = (index: number) => (element: HTMLElement | null) => {
-    if (element) sectionsRef.current[index] = element;
-  };
 
   return (
-    <main
-      className="relative min-h-screen overflow-hidden bg-[#0A0A0A] text-white"
-      onPointerMove={(event) => {
-        mouseX.set(event.clientX);
-        mouseY.set(event.clientY);
-      }}
-    >
-      <motion.div
-        aria-hidden="true"
-        className="pointer-events-none fixed left-0 top-0 z-20 h-1 w-full origin-left bg-linear-to-r from-cyan-400 via-fuchsia-500 to-violet-500"
-        style={{ scaleX: progress }}
-      />
-
-      {enableHeavyEffects ? (
-        <motion.div
-          aria-hidden="true"
-          className="pointer-events-none fixed z-10 h-32 w-32 rounded-full bg-[#00F0FF]/10 blur-3xl"
-          style={{ x: glowX, y: glowY }}
-        />
-      ) : null}
+    <main className="relative min-h-screen overflow-hidden bg-[#0A0A0A] text-white">
 
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(0,240,255,0.16),transparent_22%),radial-gradient(circle_at_80%_10%,rgba(255,0,200,0.16),transparent_20%),radial-gradient(circle_at_50%_80%,rgba(122,0,255,0.16),transparent_28%)]" />
       <div className="scanlines absolute inset-0 opacity-16" />
-      <InteractiveParticleField enabled={enableHeavyEffects} />
 
       <header className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-6 sm:px-6 lg:px-8">
         <Link href="/" className="group flex items-center gap-3">
@@ -330,7 +223,7 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <section ref={addSectionRef(0)} className="relative z-10 mx-auto grid w-full max-w-7xl gap-10 px-5 pb-20 pt-8 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:pt-10">
+      <section className="relative z-10 mx-auto grid w-full max-w-7xl gap-10 px-5 pb-20 pt-8 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:pt-10">
         <div className="flex flex-col justify-center gap-8">
           <motion.div data-reveal className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.35em] text-cyan-100 shadow-[0_0_35px_rgba(0,240,255,0.12)]">
             <Image src={brandIcon} alt="XConnect AI" className="h-4 w-4 object-contain" />
@@ -449,7 +342,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section ref={addSectionRef(1)} id="features" className="relative z-10 mx-auto w-full max-w-7xl px-5 py-20 sm:px-6 lg:px-8">
+      <section id="features" className="relative z-10 mx-auto w-full max-w-7xl px-5 py-20 sm:px-6 lg:px-8">
         <SectionLabel
           eyebrow="Features"
           title="Interactive systems for premium AI storytelling"
@@ -475,7 +368,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section ref={addSectionRef(2)} id="demo" className="relative z-10 mx-auto w-full max-w-7xl px-5 py-20 sm:px-6 lg:px-8">
+      <section id="demo" className="relative z-10 mx-auto w-full max-w-7xl px-5 py-20 sm:px-6 lg:px-8">
         <SectionLabel
           eyebrow="AI Demo"
           title="A conversation that feels alive"
@@ -514,7 +407,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section ref={addSectionRef(3)} id="showcase" className="relative z-10 mx-auto w-full max-w-7xl px-5 py-20 sm:px-6 lg:px-8">
+      <section id="showcase" className="relative z-10 mx-auto w-full max-w-7xl px-5 py-20 sm:px-6 lg:px-8">
         <SectionLabel
           eyebrow="Showcase"
           title="A cinematic product surface with depth"
@@ -611,7 +504,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section ref={addSectionRef(4)} className="relative z-10 mx-auto w-full max-w-7xl px-5 py-20 sm:px-6 lg:px-8">
+      <section className="relative z-10 mx-auto w-full max-w-7xl px-5 py-20 sm:px-6 lg:px-8">
         <SectionLabel
           eyebrow="Testimonials"
           title="What premium teams would say"
@@ -630,7 +523,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section ref={addSectionRef(5)} id="pricing" className="relative z-10 mx-auto w-full max-w-7xl px-5 py-20 sm:px-6 lg:px-8">
+      <section id="pricing" className="relative z-10 mx-auto w-full max-w-7xl px-5 py-20 sm:px-6 lg:px-8">
         <SectionLabel
           eyebrow="Pricing"
           title="Built like a startup launch page"
@@ -682,7 +575,7 @@ export default function LandingPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-100/60">XConnect AI</p>
             <h2 className="mt-2 text-2xl font-bold text-white">A next-generation AI chat experience.</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-200/70">
-              Designed to feel alive from the first frame: neon depth, motion storytelling, interactive particles, and a clear path into the product.
+              Designed to feel alive from the first frame: neon depth, motion storytelling, and a clear path into the product.
             </p>
           </div>
 
