@@ -10,7 +10,6 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useAuthStore } from "@/store/auth.store";
 import InteractiveParticleField from "./InteractiveParticleField";
-import ThreeBackdrop from "./ThreeBackdrop";
 import brandIcon from "../../assets/icon.png";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -186,7 +185,7 @@ export default function LandingPage() {
   const sectionsRef = useRef<HTMLElement[]>([]);
 
   const marqueeItems = useMemo(
-    () => ["Real-time AI", "Glassmorphism", "Scroll storytelling", "3D background", "Cursor-reactive particles", "Neon motion"],
+    () => ["Real-time AI", "Glassmorphism", "Scroll storytelling", "Cursor-reactive particles", "Neon motion"],
     []
   );
 
@@ -296,7 +295,6 @@ export default function LandingPage() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(0,240,255,0.16),transparent_22%),radial-gradient(circle_at_80%_10%,rgba(255,0,200,0.16),transparent_20%),radial-gradient(circle_at_50%_80%,rgba(122,0,255,0.16),transparent_28%)]" />
       <div className="scanlines absolute inset-0 opacity-16" />
       <InteractiveParticleField enabled={enableHeavyEffects} />
-      <ThreeBackdrop enabled={enableHeavyEffects} />
 
       <header className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-6 sm:px-6 lg:px-8">
         <Link href="/" className="group flex items-center gap-3">
