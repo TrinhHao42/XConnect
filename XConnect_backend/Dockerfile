@@ -2,25 +2,29 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
+RUN corepack enable
 
-RUN npm ci
+COPY package.json pnpm-lock.yaml ./
+
+RUN pnpm install --frozen-lockfile
 
 COPY prisma ./prisma
 COPY . .
 
 RUN npx prisma generate
 
-RUN npm run build
+RUN pnpm build
 
 
 FROM node:22-alpine AS runner
 
 WORKDIR /app
 
-COPY package*.json ./
+RUN corepack enable
 
-RUN npm ci --omit=dev && npm cache clean --force
+COPY package.json pnpm-lock.yaml ./
+
+RUN pnpm install --prod --frozen-lockfile
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
