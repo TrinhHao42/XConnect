@@ -21,13 +21,15 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js (with npm cache)
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: XConnect_backend/package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run Linter
         run: npm run lint
@@ -35,13 +37,13 @@ jobs:
       - name: Run Tests
         run: |
           if npm run | grep -q "test"; then
-            npm run test
+            npm test
           else
             echo "No test script found, skipping tests."
           fi
 
   build-and-push:
-    name: Build and Push Docker Image (Cached)
+    name: Build and Push Docker Image
     needs: test
     runs-on: ubuntu-latest
 
@@ -58,7 +60,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker image (with cache)
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./XConnect_backend
@@ -84,6 +86,9 @@ jobs:
           script: |
             set -e
 
+            echo "=== REMOVE UNUSED IMAGES ==="
+            sudo docker image prune -af || true
+
             echo "=== PULL IMAGE ==="
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:latest
 
@@ -92,11 +97,20 @@ jobs:
             sudo docker rm xconnect-backend || true
 
             echo "=== START NEW CONTAINER ==="
-            sudo docker run -d --name xconnect-backend \
+            sudo docker run -d \
+              --name xconnect-backend \
               --restart unless-stopped \
               -p 8080:8080 \
               --env-file /home/${{ secrets.EC2_USERNAME }}/XConnect_backend/.env \
               ${{ secrets.DOCKERHUB_USERNAME }}/xconnect-backend:latest
 
-            echo "=== DONE ==="
-            sudo docker ps | grep xconnect-backend
+            echo "=== CLEANUP ==="
+            sudo docker container prune -f || true
+            sudo docker image prune -af || true
+            sudo docker builder prune -af || true
+
+            echo "=== RUNNING CONTAINERS ==="
+            sudo docker ps
+
+            echo "=== DISK USAGE ==="
+            df -h
