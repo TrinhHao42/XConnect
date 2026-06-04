@@ -150,20 +150,51 @@ export class AuthService {
     return { ...tokens, user: safeUser };
   }
 
+  async revokeAllUserTokens(userId: string) {
+    try {
+      const activeTokens = await this.redis.smembers(`user_refresh_tokens:${userId}`);
+      if (activeTokens && activeTokens.length > 0) {
+        const keys = activeTokens.map(token => `refresh_token:${token}`);
+        await this.redis.del(...keys);
+      }
+      await this.redis.del(`user_refresh_tokens:${userId}`);
+    } catch (error) {
+      console.error('[Auth] Failed to revoke all tokens for user:', userId, error.message);
+    }
+  }
+
   async refreshTokens(oldRefreshToken: string) {
     if (!oldRefreshToken) {
       throw new UnauthorizedException('Refresh Token not found');
     }
 
     const userId = await this.redis.get(`refresh_token:${oldRefreshToken}`);
+    
     if (!userId) {
+      // Replay Detection: Check if the token was already rotated (reuse attempt)
+      const replayedUserId = await this.redis.get(`rotated_token:${oldRefreshToken}`);
+      if (replayedUserId) {
+        // Clear rotated token record
+        await this.redis.del(`rotated_token:${oldRefreshToken}`);
+        // Revoke all active sessions for this user due to security compromise
+        await this.revokeAllUserTokens(replayedUserId);
+        throw new UnauthorizedException(
+          'Security Breach: Refresh Token reuse detected. All sessions have been revoked.',
+        );
+      }
       throw new UnauthorizedException(
         'Invalid or expired Refresh Token',
       );
     }
 
-    // Delete old token to prevent reuse (token rotation)
-    await this.redis.del(`refresh_token:${oldRefreshToken}`);
+    // Valid rotation: remove from active set, delete key, register in rotated set, return new tokens
+    try {
+      await this.redis.srem(`user_refresh_tokens:${userId}`, oldRefreshToken);
+      await this.redis.del(`refresh_token:${oldRefreshToken}`);
+      await this.redis.setex(`rotated_token:${oldRefreshToken}`, 300, userId); // TTL 5 mins
+    } catch (error) {
+      console.warn('[Auth] Failed to update rotated token in Redis:', error.message);
+    }
 
     return this.generateTokens(userId);
   }
@@ -171,7 +202,15 @@ export class AuthService {
   async logout(accessToken: string, refreshToken: string) {
     // Revoke Refresh Token
     if (refreshToken) {
-      await this.redis.del(`refresh_token:${refreshToken}`);
+      try {
+        const userId = await this.redis.get(`refresh_token:${refreshToken}`);
+        if (userId) {
+          await this.redis.srem(`user_refresh_tokens:${userId}`, refreshToken);
+        }
+        await this.redis.del(`refresh_token:${refreshToken}`);
+      } catch (error) {
+        console.warn('[Auth] Failed to clean up logout refresh token:', error.message);
+      }
     }
 
     // Add Access Token to Blacklist (TTL 15 mins = 900s)
@@ -269,6 +308,8 @@ export class AuthService {
     // If Redis is not ready, return tokens anyway so login/register doesn't hang.
     try {
       await this.redis.setex(`refresh_token:${refreshToken}`, 604800, userId);
+      await this.redis.sadd(`user_refresh_tokens:${userId}`, refreshToken);
+      await this.redis.expire(`user_refresh_tokens:${userId}`, 604800);
     } catch (error) {
       console.warn(
         '[Auth] Failed to persist refresh token in Redis:',
