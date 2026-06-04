@@ -54,7 +54,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const oldRefreshToken = (req.cookies as Record<string, string>)
-      ?.refreshToken;
+      ?._xcsid;
     const tokens = await this.authService.refreshTokens(oldRefreshToken);
     this.setRefreshTokenCookie(res, tokens.refreshToken);
     return { accessToken: tokens.accessToken };
@@ -68,10 +68,10 @@ export class AuthController {
   ) {
     const accessToken = (req.headers.authorization ?? '').split(' ')[1] ?? '';
     const refreshToken =
-      (req.cookies as Record<string, string>)?.refreshToken ?? '';
+      (req.cookies as Record<string, string>)?._xcsid ?? '';
 
     await this.authService.logout(accessToken, refreshToken);
-    res.clearCookie('refreshToken');
+    res.clearCookie('_xcsid');
     return { message: 'Logged out successfully' };
   }
 
@@ -131,7 +131,7 @@ export class AuthController {
   }
 
   private setRefreshTokenCookie(res: Response, token: string) {
-    res.cookie('refreshToken', token, {
+    res.cookie('_xcsid', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
