@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { RtcRole, RtcTokenBuilder } from 'agora-access-token';
+import { decryptUserId } from '../../common/utils/crypto.util';
 
 function toAgoraUid(value: unknown) {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -47,6 +48,10 @@ export class AgoraController {
     const payload = await this.jwtService.verifyAsync<{ sub?: string; userId?: string; id?: string }>(authToken).catch(() => {
       throw new UnauthorizedException('Invalid token');
     });
+
+    if (payload && payload.sub) {
+      payload.sub = decryptUserId(payload.sub);
+    }
 
     const userId = String(payload?.sub || payload?.userId || payload?.id || '0');
     const uid = toAgoraUid(uidQuery ?? userId);

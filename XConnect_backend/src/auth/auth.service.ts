@@ -10,6 +10,7 @@ import { Redis } from 'ioredis';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import { encryptUserId, decryptUserId } from '../common/utils/crypto.util';
 
 @Injectable()
 export class AuthService {
@@ -243,6 +244,10 @@ export class AuthService {
         return { valid: false, message: 'Token has been revoked (Blacklisted)' };
       }
 
+      if (payload && payload.sub) {
+        payload.sub = decryptUserId(payload.sub);
+      }
+
       return { valid: true, payload };
     } catch (e) {
       return { valid: false, message: e.message };
@@ -299,7 +304,7 @@ export class AuthService {
   }
 
   private async generateTokens(userId: string) {
-    const accessToken = this.jwtService.sign({ sub: userId });
+    const accessToken = this.jwtService.sign({ sub: encryptUserId(userId) });
 
     // Create random string for refresh_token
     const refreshToken = crypto.randomBytes(40).toString('hex');
