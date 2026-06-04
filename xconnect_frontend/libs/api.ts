@@ -12,7 +12,7 @@ function getToken(): string | null {
 }
 
 export async function refreshSession(): Promise<string> {
-  const refreshRes = await fetch(`${API_URL}/auth/refresh`, { method: "POST" });
+  const refreshRes = await fetch(`${API_URL}/auth/refresh`, { method: "POST", credentials: "include" });
   if (!refreshRes.ok) {
     throw new Error("Session expired");
   }
@@ -31,7 +31,7 @@ async function apiFetch<T>(
   };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  let res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  let res = await fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
 
   // Handle 401 Unauthorized - attempt to refresh token
   if (res.status === 401 && !path.includes("/auth/login") && !path.includes("/auth/register") && !path.includes("/auth/supabase-login")) {
@@ -42,7 +42,7 @@ async function apiFetch<T>(
       
       // Retry original request with new token
       headers["Authorization"] = `Bearer ${accessToken}`;
-      res = await fetch(`${API_URL}${path}`, { ...options, headers });
+      res = await fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
     } catch (e) {
       console.error("Token refresh failed:", e);
       if (typeof window !== "undefined") {
