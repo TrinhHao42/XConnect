@@ -62,6 +62,19 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   initializeAuth: async () => {
+    // Clear leftover cookies & localStorage credentials from past logins
+    if (typeof window !== "undefined") {
+      document.cookie = "accessToken=; path=/; max-age=0";
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith("sb-") || key.includes("-auth-token") || key === "auth-storage")) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+    }
+
     try {
       const { refreshSession, api } = require("../libs/api");
       // 1. Silent token refresh using httpOnly cookie
