@@ -12,6 +12,7 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ChatService } from './chat.service';
+import { decryptUserId } from '../../common/utils/crypto.util';
 
 @WebSocketGateway({
   cors: {
@@ -44,6 +45,7 @@ export class ChatGateway
 
       if (!token) return;
       const payload = await this.jwtService.verifyAsync(token);
+      payload.sub = decryptUserId(payload.sub);
       client.data.user = payload;
     } catch {
       client.disconnect();

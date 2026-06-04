@@ -11,6 +11,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { decryptUserId } from '../../common/utils/crypto.util';
 
 @WebSocketGateway({
   namespace: 'call',
@@ -42,6 +43,7 @@ export class CallGateway
       if (!token) throw new Error('Missing token');
 
       const payload = await this.jwtService.verifyAsync(token);
+      payload.sub = decryptUserId(payload.sub);
       client.data.user = payload;
 
       const userId = String(payload.sub || payload.userId || payload.id);

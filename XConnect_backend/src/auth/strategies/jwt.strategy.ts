@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Request } from 'express';
 import { AuthService } from '../auth.service';
+import { decryptUserId } from '../../common/utils/crypto.util';
 
 const publicKey = fs.readFileSync(
   path.join(process.cwd(), 'keys', 'public_key.pem'),
@@ -36,6 +37,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }
     }
 
-    return { userId: String(payload.sub) };
+    const decryptedUserId = decryptUserId(payload.sub);
+    return { userId: decryptedUserId, sub: decryptedUserId };
   }
 }

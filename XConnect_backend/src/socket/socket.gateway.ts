@@ -12,6 +12,7 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ChatService } from '../modules/chat/chat.service';
+import { decryptUserId } from '../common/utils/crypto.util';
 
 @WebSocketGateway({
   namespace: 'chat',
@@ -56,6 +57,7 @@ export class SocketGateway
 
       // Giải mã token, kiểm tra hợp lệ
       const payload = await this.jwtService.verifyAsync(token);
+      payload.sub = decryptUserId(payload.sub);
 
       // Lưu thông tin user vào socket data để các event khác xài
       client.data.user = payload;
