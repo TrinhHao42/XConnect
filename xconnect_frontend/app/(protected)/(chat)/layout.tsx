@@ -7,19 +7,33 @@ import { ReactNode, useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { refreshSession } from "@/libs/api";
 
 export default function ChatLayout({ children }: { children: ReactNode }) {
-  const { token, isAuthenticated } = useAuthStore();
+  const { token, isAuthenticated, updateToken, logout } = useAuthStore();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (!token || !isAuthenticated) {
-      router.push("/login");
-    } else {
-      setChecking(false);
-    }
-  }, [token, isAuthenticated, router]);
+    const checkAuth = async () => {
+      if (!token && isAuthenticated) {
+        try {
+          const accessToken = await refreshSession();
+          updateToken(accessToken);
+          setChecking(false);
+        } catch (err) {
+          console.error("Auto token refresh failed:", err);
+          logout();
+          router.push("/login");
+        }
+      } else if (!token || !isAuthenticated) {
+        router.push("/login");
+      } else {
+        setChecking(false);
+      }
+    };
+    checkAuth();
+  }, [token, isAuthenticated, router, updateToken, logout]);
 
   if (checking) {
     return (

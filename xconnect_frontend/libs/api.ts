@@ -3,11 +3,21 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  // Read from cookie — set synchronously on login
-  const raw = document.cookie.split('; ').find((r) => r.startsWith('accessToken='));
-  if (raw) return decodeURIComponent(raw.split('=').slice(1).join('='));
-  return null;
+  try {
+    const { useAuthStore } = require("../store/auth.store");
+    return useAuthStore.getState().token;
+  } catch {
+    return null;
+  }
+}
+
+export async function refreshSession(): Promise<string> {
+  const refreshRes = await fetch(`${API_URL}/auth/refresh`, { method: "POST" });
+  if (!refreshRes.ok) {
+    throw new Error("Session expired");
+  }
+  const { accessToken } = await refreshRes.json();
+  return accessToken;
 }
 
 async function apiFetch<T>(
@@ -24,31 +34,24 @@ async function apiFetch<T>(
   let res = await fetch(`${API_URL}${path}`, { ...options, headers });
 
   // Handle 401 Unauthorized - attempt to refresh token
-  if (res.status === 401 && !path.includes("/auth/login") && !path.includes("/auth/register")) {
+  if (res.status === 401 && !path.includes("/auth/login") && !path.includes("/auth/register") && !path.includes("/auth/supabase-login")) {
     try {
-      // Try to call refresh endpoint (uses httpOnly refreshToken cookie)
-      const refreshRes = await fetch(`${API_URL}/auth/refresh`, { method: "POST" });
+      const accessToken = await refreshSession();
+      const { useAuthStore } = require("../store/auth.store");
+      useAuthStore.getState().updateToken(accessToken);
       
-      if (refreshRes.ok) {
-        const { accessToken } = await refreshRes.json();
-        const { useAuthStore } = require("../store/auth.store");
-        useAuthStore.getState().updateToken(accessToken);
-        
-        // Retry original request with new token
-        headers["Authorization"] = `Bearer ${accessToken}`;
-        res = await fetch(`${API_URL}${path}`, { ...options, headers });
-      } else {
-        // Refresh failed, user must log in again
-        if (typeof window !== "undefined") {
-          const { useAuthStore } = require("../store/auth.store");
-          useAuthStore.getState().logout();
-          if (window.location.pathname !== "/login") {
-            window.location.pathname = "/login";
-          }
-        }
-      }
+      // Retry original request with new token
+      headers["Authorization"] = `Bearer ${accessToken}`;
+      res = await fetch(`${API_URL}${path}`, { ...options, headers });
     } catch (e) {
       console.error("Token refresh failed:", e);
+      if (typeof window !== "undefined") {
+        const { useAuthStore } = require("../store/auth.store");
+        useAuthStore.getState().logout();
+        if (window.location.pathname !== "/login") {
+          window.location.pathname = "/login";
+        }
+      }
     }
   }
 

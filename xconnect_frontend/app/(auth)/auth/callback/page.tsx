@@ -10,30 +10,65 @@ export default function AuthCallbackPage() {
   const { setAuth } = useAuthStore();
 
   useEffect(() => {
-    const handleAuthCallback = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      
-      if (error || !data.session) {
+    let active = true;
+
+    const exchangeToken = async (session: any) => {
+      if (!active) return;
+      try {
+        const response = await api.post<{ accessToken: string; user: any }>("/auth/supabase-login", {
+          access_token: session.access_token,
+        });
+        if (active) {
+          setAuth(response.user, response.accessToken);
+          window.location.replace("/chat");
+        }
+      } catch (err) {
+        console.error("Backend Auth Error:", err);
+        if (active) {
+          window.location.replace("/login?error=server_auth_failed");
+        }
+      }
+    };
+
+    // 1. Listen for auth state changes — standard way for Supabase to notify when OAuth is parsed
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Supabase OAuth Event:", event, !!session);
+      if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
+        await exchangeToken(session);
+      }
+    });
+
+    // 2. Immediate getSession check with a slight delay fallback if not signed in yet
+    const init = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
         console.error("Supabase Auth Error:", error);
         window.location.replace("/login?error=auth_failed");
         return;
       }
-
-      try {
-        // Gửi token của Supabase xuống backend NestJS để lấy XConnect Token nội bộ
-        const response = await api.post<{ accessToken: string; user: any }>("/auth/supabase-login", {
-          access_token: data.session.access_token,
-        });
-
-        setAuth(response.user, response.accessToken);
-        window.location.replace("/chat");
-      } catch (err) {
-        console.error("Backend Auth Error:", err);
-        window.location.replace("/login?error=server_auth_failed");
+      if (session) {
+        await exchangeToken(session);
+      } else {
+        // Wait 1.5s for hash parsing if no session is immediately available
+        setTimeout(async () => {
+          if (!active) return;
+          const { data: { session: delayedSession } } = await supabase.auth.getSession();
+          if (delayedSession) {
+            await exchangeToken(delayedSession);
+          } else {
+            console.warn("OAuth Session callback timed out with no session found.");
+            window.location.replace("/login?error=auth_failed");
+          }
+        }, 1500);
       }
     };
 
-    handleAuthCallback();
+    init();
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, [setAuth]);
 
   return (
