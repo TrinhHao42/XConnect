@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'XConnect_backend/**'
+       - 'xpress-backend/**'
       - '.github/workflows/deploy_backend.yaml'
 
 jobs:
