@@ -5,10 +5,12 @@ import { ReactNode, useEffect } from "react";
 import { toast } from "sonner";
 import { CallProvider } from "@/components/call";
 import { useLanguageStore } from "@/store/language.store";
+import { useAuthStore } from "@/store/auth.store";
 
 export function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
     useLanguageStore.getState().initialize();
+    useAuthStore.getState().initializeAuth();
   }, []);
 
   useEffect(() => {

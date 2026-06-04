@@ -10,32 +10,16 @@ import { Loader2 } from "lucide-react";
 import { refreshSession } from "@/libs/api";
 
 export default function ChatLayout({ children }: { children: ReactNode }) {
-  const { token, isAuthenticated, updateToken, logout } = useAuthStore();
+  const { isAuthenticated, isInitialized } = useAuthStore();
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      if (!token && isAuthenticated) {
-        try {
-          const accessToken = await refreshSession();
-          updateToken(accessToken);
-          setChecking(false);
-        } catch (err) {
-          console.error("Auto token refresh failed:", err);
-          logout();
-          router.push("/login");
-        }
-      } else if (!token || !isAuthenticated) {
-        router.push("/login");
-      } else {
-        setChecking(false);
-      }
-    };
-    checkAuth();
-  }, [token, isAuthenticated, router, updateToken, logout]);
+    if (isInitialized && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isInitialized, isAuthenticated, router]);
 
-  if (checking) {
+  if (!isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="relative w-full max-w-md overflow-hidden rounded-4xl glass-panel aurora-shimmer px-8 py-10 text-center pop-in">
@@ -54,6 +38,10 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
         </div>
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (

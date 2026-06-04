@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Mail, Lock, Eye, Sparkles, User, ShieldCheck, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/libs/api";
 import { toast } from "sonner";
@@ -45,9 +45,15 @@ export default function RegisterPage() {
   const [repassword, setRepassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { setAuth } = useAuthStore();
+  const { setAuth, isAuthenticated, isInitialized } = useAuthStore();
   const { language } = useLanguageStore();
   const t = translations[language];
+
+  useEffect(() => {
+    if (isInitialized && isAuthenticated) {
+      window.location.replace("/chat");
+    }
+  }, [isInitialized, isAuthenticated]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
