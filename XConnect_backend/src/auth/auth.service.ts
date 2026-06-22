@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { Redis } from 'ioredis';
-import * as bcrypt from 'bcryptjs';
+import { hash as hashPassword, verify as verifyPassword } from '@node-rs/bcrypt';
 import * as crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { encryptUserId, decryptUserId } from '../common/utils/crypto.util';
@@ -47,7 +47,7 @@ export class AuthService {
       throw new BadRequestException('Email or username already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await hashPassword(password, 10);
     const user = await this.prisma.user.create({
       data: {
         username: normalizedUsername,
@@ -75,7 +75,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid login credentials');
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await verifyPassword(password, user.password);
     if (!isMatch) {
       throw new UnauthorizedException('Invalid login credentials');
     }
@@ -291,7 +291,7 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired verification code');
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await hashPassword(newPassword, 10);
     await this.prisma.user.update({
       where: { email },
       data: { password: hashedPassword },
